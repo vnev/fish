@@ -5,11 +5,13 @@ import java.util.*
 
 data class Player(val name: String, private val hand: Hand = Hand()) {
     val id: String = UUID.randomUUID().toString()
-
-    fun guess(card: Card): Boolean {
-        val wasRemoved = hand.removeIfContains(card)
         // add to guesser's hand
-    }
+        if(hand.contains(card)){
+            player.addToHand(card);
+        }
+
+        //remove from player's hand
+        val wasRemoved = hand.removeIfContains(card)
 }
 
 class Hand {
