@@ -1,5 +1,6 @@
-local class = require("middleclass")
-local Card = require("Card")
+local class = require "middleclass"
+local Card = require "Card"
+
 local Deck = class('Deck')
 
 function Deck:initalize()

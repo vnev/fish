@@ -1,5 +1,5 @@
-local class = require("middleclass")
-local math = require("math")
+local class = require "middleclass"
+local math = require "math"
 
 local Player = class("Player")
 

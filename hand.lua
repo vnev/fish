@@ -1,5 +1,5 @@
-local class = require("middleclass")
-local love = require("love")
+local class = require "middleclass"
+local love = require "love"
 
 local Hand = class("Hand")
 
@@ -8,8 +8,7 @@ function Hand:initialize(cards, batch_img, batch_x, batch_y)
     self.batch = love.graphics.newSpriteBatch(batch_img, #cards)
     self.batch_draw_x = batch_x
     self.batch_draw_y = batch_y
-    self:updatebatch()
-    self:updatesuits()
+    self:update()
 end
 
 function Hand:update()
