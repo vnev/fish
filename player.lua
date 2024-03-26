@@ -9,4 +9,11 @@ function Player:initialize(teamid, hand)
     self.id = math.random()
 end
 
+function Player:update()
+    self.hand:update()
+end
+
+function Player:draw()
+end
+
 return Player

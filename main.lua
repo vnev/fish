@@ -1,5 +1,6 @@
 local love = require "love"
-
+local Player = require "player"
+local Hand = require "hand"
 local AssetLoader = require "asset_loader"
 local cardimages = {}
 
