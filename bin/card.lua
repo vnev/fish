@@ -13,3 +13,4 @@ function Card:__tostring()
     return self.rank .. " of " .. self.suit
 end
 
+return Card
