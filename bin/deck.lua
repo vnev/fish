@@ -14,8 +14,8 @@ function Deck:populate()
 
     for _, suit in ipairs(suits) do
         for _, rank in ipairs(ranks) do
-            for _, value in ipairs(value) do
-                table.insert(self.cards, Card:new(suit,rank,value))
+            for _, val in ipairs(value) do
+                table.insert(self.cards, Card:new(suit,rank,val))
             end
         end
     end
