@@ -21,11 +21,16 @@ function Hand:draw()
 end
 
 function Hand:updatebatch()
-    local rotate = 0.0
-    for i = 1, #self.cards, 1 do
-        self.batch:add(self.batch_draw_x, self.batch_draw_y, rotate, 1.5, 1.5)
-        rotate = rotate + 0.02
+    if self.batch:getCount() ~= #self.cards then -- only update spritebatch if a player's hand changed
+        self.batch:clear()
+
+        local rotate = 0.0
+        for i = 1, #self.cards, 1 do
+            self.batch:add(self.batch_draw_x, self.batch_draw_y, rotate, 1.5, 1.5)
+            rotate = rotate + 0.02
+        end
     end
+
 end
 
 function Hand:add(card)
