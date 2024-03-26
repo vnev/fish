@@ -1,9 +1,11 @@
 local love = require "love"
 local Deck = require "deck"
+local Player = require "player"
+local Hand = require "hand"
 
 local AssetLoader = require "asset_loader"
-local cardimages = {}
 
+local cardimages = {}
 local imagesToDraw = {}
 local faceDownDecks = {} --- holds face down decks to be drawn
 
