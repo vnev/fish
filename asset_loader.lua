@@ -13,6 +13,7 @@ local card_file_extension = ".png"
 function Assets.LoadAssets()
     local cards = {} --- cardname -> lua.image
 
+    cards["card_back"] = love.graphics.newImage(path_prefix .. card_prefix .. "_back" .. card_file_extension, {})
     for i = 1, #card_suits, 1
     do
         for j = 1, #card_values, 1
@@ -20,7 +21,6 @@ function Assets.LoadAssets()
             local filename =  path_prefix .. card_prefix .. "_" .. card_suits[i] .. "_" .. card_values[j] .. card_file_extension
             local key = card_suits[i] .. card_values[j]
             cards[key] = love.graphics.newImage(filename, {})
-            print("key: " .. key .. ", filename: " .. filename)
         end
     end
 
