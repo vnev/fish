@@ -52,7 +52,7 @@ function Hand:remove(cardid)
     end
     if idx > -1 then
         local removed = self.cards:remove(idx)
-        self:updatesuits()
+        self:updatesuits() -- TODO: do we need this, update() should be called anyway
         return removed
     else
         print(cardid .. " was not found in this hand!")
