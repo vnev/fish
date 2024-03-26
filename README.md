@@ -6,6 +6,7 @@
  - suit: Card suit
  - value: Card numeric value
  - id: `<suit>+<value>`
+ - subdeck_id: `SubDecks.id`
 
 ### Deck
  - cards: set of `Card`s
@@ -16,7 +17,7 @@
 
 ### PlayerHand
  - cards: starts with 8 random cards drawn from `Deck`
- - handSize: currentHandSize, starts at 8
+ - handSize: current hand size, starts at 8
  - suits: Set of all suits in player's current `cards`, used for quicker lookup
 
 ### Player
@@ -27,4 +28,4 @@
 ### Team
  - players: Set of Player IDs
  - score: team score
- - numHandsWon: number of
+ - numHandsWon: number of SubDecks won

@@ -36,23 +36,21 @@ function LoadPlayerDecks(numDeckPairs)
     local x = 250
     local rotateFactor = 0.0 -- go up to 0.2 radians
     for i = 1, numDeckPairs, 1
-    do
-        local tmp = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
-        local tmp2 = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
-       for i = 1, 8, 1
-       do
-        tmp:add(x, yBot, rotateFactor, 1.5, 1.5)
-        tmp2:add(x, yTop, rotateFactor, 1.5, 1.5)
-        rotateFactor = rotateFactor + 0.02
-       end
-       table.insert(faceDownDecks, tmp)
-       table.insert(faceDownDecks, tmp2)
-       x = x + 200
-       rotateFactor = 0.0
+        do
+            local tmp = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
+            local tmp2 = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
+        for i = 1, 8, 1
+            do
+            tmp:add(x, yBot, rotateFactor, 1.5, 1.5)
+            tmp2:add(x, yTop, rotateFactor, 1.5, 1.5)
+            rotateFactor = rotateFactor + 0.02
+        end
+        table.insert(faceDownDecks, tmp)
+        table.insert(faceDownDecks, tmp2)
+        x = x + 200
+        rotateFactor = 0.0
     end
 end
-
-
 
 function LoadCenterCards()
     local diamond08 = cardimages["diamonds08"]
