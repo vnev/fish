@@ -1,6 +1,8 @@
 local love = require "love"
+local Deck = require "deck"
 local Player = require "player"
 local Hand = require "hand"
+
 local AssetLoader = require "asset_loader"
 
 local cardimages = {}
@@ -8,16 +10,16 @@ local imagesToDraw = {}
 local faceDownDecks = {} --- holds face down decks to be drawn
 
 function Dump(o)
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. Dump(v) .. ','
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
+    if type(o) == 'table' then
+        local s = '{ '
+        for k, v in pairs(o) do
+            if type(k) ~= 'number' then k = '"' .. k .. '"' end
+            s = s .. '[' .. k .. '] = ' .. Dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
 end
 
 function love.load()
@@ -37,11 +39,11 @@ function LoadPlayerDecks(numDeckPairs)
     local x = 250
     local rotateFactor = 0.0 -- go up to 0.2 radians
     for i = 1, numDeckPairs, 1
-        do
-            local tmp = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
-            local tmp2 = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
+    do
+        local tmp = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
+        local tmp2 = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
         for i = 1, 8, 1
-            do
+        do
             tmp:add(x, yBot, rotateFactor, 1.5, 1.5)
             tmp2:add(x, yTop, rotateFactor, 1.5, 1.5)
             rotateFactor = rotateFactor + 0.02
@@ -55,8 +57,8 @@ end
 
 function LoadCenterCards()
     local diamond08 = cardimages["diamonds08"]
-    local x, y = 300, 768/2
-    table.insert(imagesToDraw, { image = diamond08,  x = x, y = y })
+    local x, y = 300, 768 / 2
+    table.insert(imagesToDraw, { image = diamond08, x = x, y = y })
 
     x = 400
     local spades08 = cardimages["spades08"]
@@ -93,3 +95,13 @@ function love.update(delta)
         end
     end
 end
+
+function Main()
+    local deck = Deck:new()
+    --deck:shuffle()
+    for _, card in ipairs(deck.cards) do
+        print(tostring(card))
+    end
+end
+
+Main()
