@@ -2,12 +2,12 @@ local class = require 'middleclass'
 
 local Card = class('Card')
 
-function Card:initialize(suit, rank, value, sub)
+function Card:initialize(suit, rank)
     self.suit = suit
     self.rank = rank
     self.id = suit .. rank
-    self.value = value
-    self.subdeck = suit .. '_' .. sub
+    if self.rank <= 7 then self.subdeck = 'low' else self.subdeck = 'high' end
+    self.image = nil -- TODO: populate
 end
 
 function Card:__tostring()

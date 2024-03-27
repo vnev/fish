@@ -30,6 +30,13 @@ function love.load()
     cardimages = AssetLoader:LoadAssets()["cards"]
     LoadCenterCards()
     LoadPlayerDecks(3)
+    -- initialize order
+    -- Cards (one card for each 52, pull out the 8s and put them in the center)
+    --      Deck
+    --          Players
+    --              Hands
+    --                  Team
+    --                      ...
 end
 
 function LoadPlayerDecks(numDeckPairs)
