@@ -37,6 +37,11 @@ function Hand:add(card)
     self.cards:insert(card)
 end
 
+function Hand:reveal()
+    -- TODO: reveal top card of hand
+    -- maybe have a separate pile of cards to draw to screen
+end
+
 function Hand:updatesuits()
     local suits = {}
     for i = 1, #self.cards, 1 do

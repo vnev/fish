@@ -8,7 +8,6 @@ local AssetLoader = require "asset_loader"
 
 local cardimages = {}
 local imagesToDraw = {}
-local faceDownDecks = {} --- holds face down decks to be drawn
 
 function Dump(o)
     if type(o) == 'table' then
@@ -27,6 +26,7 @@ local players = {}
 local hands = {}
 local teamA = Team:new()
 local teamB = Team:new()
+local cardwidth = 64
 
 function love.load()
     print('loading')
@@ -39,10 +39,12 @@ function love.load()
     local deck = Deck:new()
     deck:populate(cardimages)
     local playerdecks = deck:distribute()
+    assert(#playerdecks == 6)
 
     local y = 100
     local xdiff = 100
-    for i = 1, #playerdecks / 2, 1 do
+    -- load team A
+    for i = 1, 3, 1 do
         local hand = Hand:new(playerdecks[i], cardimages["card_back"], 200 + (xdiff * i), y)
         local player = Player:new(hand, 1)
         table.insert(hands, hand)
@@ -51,6 +53,7 @@ function love.load()
     end
 
     y = window_height - 150
+    -- load team B
     for i = 4, #playerdecks, 1 do
         local hand = Hand:new(playerdecks[i], cardimages["card_back"], 200 + (xdiff * i), y)
         local player = Player:new(hand, 1)
@@ -64,29 +67,6 @@ function love.load()
     --              Hands
     --                  Team
     --                      ...
-end
-
-function LoadPlayerDecks(numDeckPairs)
-    local w, h = 1024, 768
-    local yBot = h - 200
-    local yTop = 200
-    local x = 250
-    local rotateFactor = 0.0 -- go up to 0.2 radians
-    for i = 1, numDeckPairs, 1
-    do
-        local tmp = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
-        local tmp2 = love.graphics.newSpriteBatch(cardimages["card_back"], 8)
-        for i = 1, 8, 1
-        do
-            tmp:add(x, yBot, rotateFactor, 1.5, 1.5)
-            tmp2:add(x, yTop, rotateFactor, 1.5, 1.5)
-            rotateFactor = rotateFactor + 0.02
-        end
-        table.insert(faceDownDecks, tmp)
-        table.insert(faceDownDecks, tmp2)
-        x = x + 200
-        rotateFactor = 0.0
-    end
 end
 
 function LoadCenterCards()
@@ -113,9 +93,6 @@ function love.draw()
     do
         love.graphics.draw(imagesToDraw[i]["image"], imagesToDraw[i]["x"], imagesToDraw[i]["y"], 0, 1.5, 1.5)
     end
-    for i = 1, #faceDownDecks, 1 do -- should be 6
-        love.graphics.draw(faceDownDecks[i], 0, 0)
-    end
     for i = 1, #players, 1 do
         players[i]:draw()
     end
@@ -123,12 +100,12 @@ end
 
 function love.update(delta)
     if love.mouse.isDown(1) then
-        local mx, my = love.mouse.getPosition()
-        for i = 1, #imagesToDraw, 1
-        do
-            imagesToDraw[i]["x"] = mx
-            mx = mx + imagesToDraw[i]["image"]:getWidth() * 2
-            imagesToDraw[i]["y"] = my ---v+ imagesToDraw[i]["image"]:getHeight()
+        local x, y = love.mouse.getPosition()
+        print('x, y : ' .. x .. ', ' .. y)
+        for i = 1, #hands, 1 do
+            if x > hands[i].batch_draw_x and x < hands[i].batch_draw_x + cardwidth and y > hands[i].batch_draw_y and y < hands[i].batch_draw_y + cardwidth then
+                print("clicked a batch!!")
+            end
         end
     end
     for i = 1, #players, 1 do
