@@ -114,13 +114,3 @@ function love.update(delta)
         players[i]:update()
     end
 end
-
-function Main()
-    local deck = Deck:new()
-    deck:shuffle()
-    for _, card in ipairs(deck.cards) do
-        print(tostring(card))
-    end
-end
-
-Main()
