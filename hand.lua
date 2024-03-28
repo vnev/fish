@@ -8,7 +8,6 @@ function Hand:initialize(cards, batch_img, batch_x, batch_y)
     self.batch = love.graphics.newSpriteBatch(batch_img, #cards)
     self.batch_draw_x = batch_x
     self.batch_draw_y = batch_y
-    self:update()
 end
 
 function Hand:update()
@@ -32,7 +31,6 @@ function Hand:updatebatch()
             rotate = rotate + 0.01
         end
     end
-
 end
 
 function Hand:add(card)

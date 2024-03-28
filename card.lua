@@ -8,6 +8,7 @@ function Card:initialize(suit, rank, image)
     self.id = suit .. rank
     if self.rank <= 7 then self.subdeck = 'low' else self.subdeck = 'high' end
     self.image = image -- TODO: populate
+    return self
 end
 
 function Card:__tostring()

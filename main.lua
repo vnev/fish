@@ -1,6 +1,7 @@
 local love = require "love"
 local Deck = require "deck"
 local Player = require "player"
+local Team = require "team"
 local Hand = require "hand"
 
 local AssetLoader = require "asset_loader"
@@ -22,6 +23,11 @@ function Dump(o)
     end
 end
 
+local players = {}
+local hands = {}
+local teamA = Team:new()
+local teamB = Team:new()
+
 function love.load()
     print('loading')
     local window_width = 1024
@@ -30,9 +36,28 @@ function love.load()
     love.window.setMode(window_width, window_height, { fullscreen = false })
     cardimages = AssetLoader:LoadAssets()
     LoadCenterCards()
-    Deck:initialize()
-    Deck:populate(cardimages)
-    local playerdecks = Deck:distribute()
+    local deck = Deck:new()
+    deck:populate(cardimages)
+    local playerdecks = deck:distribute()
+
+    local y = 100
+    local xdiff = 100
+    for i = 1, #playerdecks / 2, 1 do
+        local hand = Hand:new(playerdecks[i], cardimages["card_back"], 200 + (xdiff * i), y)
+        local player = Player:new(hand, 1)
+        table.insert(hands, hand)
+        table.insert(players, player)
+        teamA:addplayer(player.id)
+    end
+
+    y = window_height - 150
+    for i = 4, #playerdecks, 1 do
+        local hand = Hand:new(playerdecks[i], cardimages["card_back"], 200 + (xdiff * i), y)
+        local player = Player:new(hand, 1)
+        table.insert(hands, hand)
+        table.insert(players, player)
+        teamB:addplayer(player.id)
+    end
     -- initialize order
     --      Deck (which will init the cards)
     --          Players
@@ -91,6 +116,9 @@ function love.draw()
     for i = 1, #faceDownDecks, 1 do -- should be 6
         love.graphics.draw(faceDownDecks[i], 0, 0)
     end
+    for i = 1, #players, 1 do
+        players[i]:draw()
+    end
 end
 
 function love.update(delta)
@@ -102,6 +130,9 @@ function love.update(delta)
             mx = mx + imagesToDraw[i]["image"]:getWidth() * 2
             imagesToDraw[i]["y"] = my ---v+ imagesToDraw[i]["image"]:getHeight()
         end
+    end
+    for i = 1, #players, 1 do
+        players[i]:update()
     end
 end
 
