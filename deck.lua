@@ -38,21 +38,39 @@ function Deck:shuffle()
     end
 end
 
+local function copy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 function Deck:distribute()
     -- distribute 8 cards to the 6 players
     -- maybe shuffle after every 8 cards are pulled?
     local playerdecks = {}
+    self:shuffle()
+    local cardscopy = copy(self.cards)
 
+    -- TODO: figure out why I have to do the last copy separately
     for i = 1, 5, 1 do
-        self:shuffle()
         local currdeck = {}
         for j = 1, 8, 1 do
-            local newcard = table.remove(self.cards, j)
+            local newcard = table.remove(cardscopy, j)
             table.insert(currdeck, newcard)
         end
         playerdecks[i] = currdeck
     end
-    playerdecks[6] = self.cards
+    playerdecks[6] = cardscopy
+
+    print("playerdecks: " .. #playerdecks .. ", cards: " .. #self.cards)
     return playerdecks
 end
 
