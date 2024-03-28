@@ -23,16 +23,18 @@ function Dump(o)
 end
 
 function love.load()
+    print('loading')
     local window_width = 1024
     local window_height = 768
 
     love.window.setMode(window_width, window_height, { fullscreen = false })
-    cardimages = AssetLoader:LoadAssets()["cards"]
+    cardimages = AssetLoader:LoadAssets()
     LoadCenterCards()
-    LoadPlayerDecks(3)
+    Deck:initialize()
+    Deck:populate(cardimages)
+    local playerdecks = Deck:distribute()
     -- initialize order
-    -- Cards (one card for each 52, pull out the 8s and put them in the center)
-    --      Deck
+    --      Deck (which will init the cards)
     --          Players
     --              Hands
     --                  Team

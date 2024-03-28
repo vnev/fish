@@ -18,15 +18,14 @@ function Assets.LoadAssets()
     do
         for j = 1, #card_values, 1
         do
-            local filename =  path_prefix .. card_prefix .. "_" .. card_suits[i] .. "_" .. card_values[j] .. card_file_extension
+            local filename = path_prefix ..
+            card_prefix .. "_" .. card_suits[i] .. "_" .. card_values[j] .. card_file_extension
             local key = card_suits[i] .. card_values[j]
             cards[key] = love.graphics.newImage(filename, {})
         end
     end
 
-    return {
-        cards = cards
-    }
+    return cards
 end
 
 return Assets
