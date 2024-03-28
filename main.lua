@@ -98,16 +98,18 @@ function love.draw()
     end
 end
 
-function love.update(delta)
-    if love.mouse.isDown(1) then
-        local x, y = love.mouse.getPosition()
-        print('x, y : ' .. x .. ', ' .. y)
+function love.mousepressed(x, y, button)
+    if button == 1 then
         for i = 1, #hands, 1 do
             if x > hands[i].batch_draw_x and x < hands[i].batch_draw_x + cardwidth and y > hands[i].batch_draw_y and y < hands[i].batch_draw_y + cardwidth then
                 print("clicked a batch!!")
+                -- hands[i]:reveal()
             end
         end
     end
+end
+
+function love.update(delta)
     for i = 1, #players, 1 do
         players[i]:update()
     end
