@@ -103,7 +103,7 @@ function love.mousepressed(x, y, button)
         for i = 1, #hands, 1 do
             if x > hands[i].batch_draw_x and x < hands[i].batch_draw_x + cardwidth and y > hands[i].batch_draw_y and y < hands[i].batch_draw_y + cardwidth then
                 print("clicked a batch!!")
-                -- hands[i]:reveal()
+                hands[i]:reveal()
             end
         end
     end

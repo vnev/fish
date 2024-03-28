@@ -3,11 +3,13 @@ local love = require "love"
 
 local Hand = class("Hand")
 
+
 function Hand:initialize(cards, batch_img, batch_x, batch_y)
     self.cards = cards
     self.batch = love.graphics.newSpriteBatch(batch_img, #cards)
     self.batch_draw_x = batch_x
     self.batch_draw_y = batch_y
+    self.todraw = {}
 end
 
 function Hand:update()
@@ -17,6 +19,9 @@ end
 
 function Hand:draw()
     love.graphics.draw(self.batch, 0, 0)
+    for i = 1, #self.todraw, 1 do
+        love.graphics.draw(self.todraw[i].image, self.batch_draw_x, self.batch_draw_y, 0, 1.5, 1.5)
+    end
 end
 
 function Hand:updatebatch()
@@ -40,6 +45,7 @@ end
 function Hand:reveal()
     -- TODO: reveal top card of hand
     -- maybe have a separate pile of cards to draw to screen
+    table.insert(self.todraw, self.cards[1])
 end
 
 function Hand:updatesuits()
