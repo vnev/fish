@@ -18,11 +18,15 @@ function Game:initialize()
     self.players = {}
     self.hands = {}
     self.teamA = Team:new()
+    print('teamA id ' .. self.teamA.id)
     self.teamB = Team:new()
+    print('teamB id ' .. self.teamB.id)
     self.card_img_width = 64
     self.card_img_height = 64
     self.window_width = 1024
     self.window_height = 768
+    self.active_player = {}
+    self.active_team_id = -1
 
     local playerdecks = self.deck:distribute()
     local y = 100
@@ -31,17 +35,23 @@ function Game:initialize()
     -- load team A
     for i = 1, (#playerdecks / 2), 1 do
         local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
-        local player = Player:new(hand, 1)
+        local player = Player:new(hand, self.teamA.id)
+        print('player initialized: ' .. player.id)
+        hand.belongs_to = player.id
         table.insert(self.hands, hand)
         table.insert(self.players, player)
         self.teamA:addplayer(player.id)
     end
 
+    self.active_player = self.players[1]
+    self.active_team_id = self.teamA.id
     y = self.window_height - 150
     -- load team B
     for i = 4, #playerdecks, 1 do
-        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * (i % 3)), y)
-        local player = Player:new(hand, 1)
+        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * (i)), y)
+        local player = Player:new(hand, self.teamB.id)
+        print('player initialized: ' .. player.id)
+        hand.belongs_to = player.id
         table.insert(self.hands, hand)
         table.insert(self.players, player)
         self.teamB:addplayer(player.id)
@@ -75,14 +85,38 @@ function Game:update(delta)
 end
 
 function Game:click_event(x, y)
-    for i = 1, #self.hands, 1 do
-        if x > self.hands[i].batch_draw_x and x < self.hands[i].batch_draw_x + self.card_img_width
-            and y > self.hands[i].batch_draw_y and y < self.hands[i].batch_draw_y + self.card_img_height
+    for i = 1, #self.players, 1 do
+        if self.players[i].teamid ~= self.active_team_id
         then
-            print("clicked a batch!!")
-            self.hands[i]:reveal()
+            if x > self.players[i].hand.batch_draw_x and (x < self.players[i].hand.batch_draw_x + self.card_img_width)
+                and y > self.players[i].hand.batch_draw_y and (y < self.players[i].hand.batch_draw_y + self.card_img_height)
+            then
+                local guess_result = self:guess(self.players[i].hand, self.players[i].hand.cards[1])
+                if not guess_result then
+                    self.active_team_id = self.players[i].teamid
+                    self.active_player = self.players[i]
+                    return
+                end
+            end
         end
     end
+end
+
+function Game:guess(guessed_hand, guessed_card)
+    for i = 1, #guessed_hand.cards, 1 do
+        if guessed_card.id == guessed_hand.cards[i].id
+        then
+            for j = 1, #self.players, 1 do
+                if guessed_hand.belongs_to == self.players[j].id
+                then
+                    local give_card = self.players[j]:give(guessed_card.id)
+                    self.active_player:take(give_card)
+                    return true
+                end
+            end
+        end
+    end
+    return false
 end
 
 function Game:draw()

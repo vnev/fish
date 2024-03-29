@@ -10,6 +10,7 @@ function Hand:initialize(cards, batch_img, batch_x, batch_y)
     self.batch_draw_x = batch_x
     self.batch_draw_y = batch_y
     self.todraw = {}
+    self.belongs_to = -100
 end
 
 function Hand:update()
@@ -39,7 +40,7 @@ function Hand:updatebatch()
 end
 
 function Hand:add(card)
-    self.cards:insert(card)
+    table.insert(self.cards, card)
 end
 
 function Hand:reveal()
@@ -65,17 +66,17 @@ end
 function Hand:remove(cardid)
     local idx = -1
     for i = 1, #self.cards, 1 do
-        if self.cards[i]["id"] == cardid then
+        if self.cards[i].id == cardid then
             idx = i
             break
         end
     end
+    print('found idx: ' .. idx)
     if idx > -1 then
-        local removed = self.cards:remove(idx)
+        local removed = table.remove(self.cards, idx)
         self:updatesuits() -- TODO: do we need this, update() should be called anyway
         return removed
     else
-        print(cardid .. " was not found in this hand!")
         return nil
     end
 end
