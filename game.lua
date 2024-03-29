@@ -48,7 +48,7 @@ function Game:initialize()
     y = self.window_height - 150
     -- load team B
     for i = 4, #playerdecks, 1 do
-        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * (i)), y)
+        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
         local player = Player:new(hand, self.teamB.id)
         print('player initialized: ' .. player.id)
         hand.belongs_to = player.id
@@ -88,8 +88,8 @@ function Game:click_event(x, y)
     for i = 1, #self.players, 1 do
         if self.players[i].teamid ~= self.active_team_id
         then
-            if x > self.players[i].hand.batch_draw_x and (x < self.players[i].hand.batch_draw_x + self.card_img_width)
-                and y > self.players[i].hand.batch_draw_y and (y < self.players[i].hand.batch_draw_y + self.card_img_height)
+            if (x > self.players[i].hand.batch_draw_x) and (x < self.players[i].hand.batch_draw_x + self.card_img_width)
+                and (y > self.players[i].hand.batch_draw_y) and (y < self.players[i].hand.batch_draw_y + self.card_img_height)
             then
                 local guess_result = self:guess(self.players[i].hand, self.players[i].hand.cards[1])
                 if not guess_result then
@@ -130,3 +130,17 @@ function Game:draw()
 end
 
 return Game
+
+
+--[[
+deck.low_ranks = [2,3,4,5,6,7]
+deck.high_ranks = [9,10,11,12,13,14]
+
+player.hand = [7S, KH]
+7S -> deck.low_ranks, spades
+KH -> deck.high_ranks, hearts
+
+cards_to_show = [loop through low_ranks, and spades, -> [2,3,4,5,6 SPADE],
+                    loop though high_ranks, and hearts ->
+    loop the n number of arrays created above and draw spritebatch
+--]]
