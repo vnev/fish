@@ -58,6 +58,10 @@ function Hand:updatesuits()
     self.suits = suits
 end
 
+function Hand:count()
+    return #self.cards
+end
+
 function Hand:remove(cardid)
     local idx = -1
     for i = 1, #self.cards, 1 do

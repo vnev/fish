@@ -1,5 +1,7 @@
 local class = require("middleclass")
 local Card = require("Card")
+local Utils = require("utils")
+
 local Deck = class('Deck')
 
 function Deck:initialize()
@@ -33,23 +35,13 @@ end
 
 function Deck:shuffle()
     for i = #self.cards, 1, -1 do
+        -- terrible attempt at getting enough randomness for the shuffle
+        -- should be fine since we only do this at the start of the game
+        -- but maybe we should find a better way?
+        math.randomseed(math.random(900141, 10004519854))
         local j = math.random(i)
         self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
     end
-end
-
-local function copy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in pairs(orig) do
-            copy[orig_key] = orig_value
-        end
-    else -- number, string, boolean, etc
-        copy = orig
-    end
-    return copy
 end
 
 function Deck:distribute()
@@ -57,7 +49,7 @@ function Deck:distribute()
     -- maybe shuffle after every 8 cards are pulled?
     local playerdecks = {}
     self:shuffle()
-    local cardscopy = copy(self.cards)
+    local cardscopy = Utils:copyarr_shallow(self.cards)
 
     -- TODO: figure out why I have to do the last copy separately
     for i = 1, 5, 1 do

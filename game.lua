@@ -4,6 +4,7 @@ local Team = require "team"
 local Deck = require "deck"
 local Hand = require "hand"
 local Player = require "player"
+local Utils = require "utils"
 local AssetLoader = require "asset_loader"
 
 local Game = class("Game")
@@ -28,7 +29,7 @@ function Game:initialize()
     local xdiff = 100
 
     -- load team A
-    for i = 1, 3, 1 do
+    for i = 1, (#playerdecks / 2), 1 do
         local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
         local player = Player:new(hand, 1)
         table.insert(self.hands, hand)
@@ -39,7 +40,7 @@ function Game:initialize()
     y = self.window_height - 150
     -- load team B
     for i = 4, #playerdecks, 1 do
-        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
+        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * (i % 3)), y)
         local player = Player:new(hand, 1)
         table.insert(self.hands, hand)
         table.insert(self.players, player)
@@ -67,7 +68,9 @@ end
 
 function Game:update(delta)
     for i = 1, #self.players, 1 do
-        self.players[i]:update()
+        if self.players[i].isactive then
+            self.players[i]:update()
+        end
     end
 end
 

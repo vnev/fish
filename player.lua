@@ -7,6 +7,7 @@ function Player:initialize(hand, teamid)
     self.hand = hand
     self.teamid = teamid
     self.id = math.random()
+    self.isactive = true
 end
 
 function Player:update()
@@ -19,7 +20,11 @@ end
 
 function Player:give(cardid)
     -- give from our deck
-    return self.hand:remove(cardid)
+    local res = self.hand:remove(cardid)
+    if self.hand:count() == 0 then
+        self.isactive = false
+    end
+    return res
 end
 
 function Player:take(card)
