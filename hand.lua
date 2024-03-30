@@ -9,7 +9,6 @@ function Hand:initialize(cards, batch_img, batch_x, batch_y)
     self.batch = love.graphics.newSpriteBatch(batch_img, #cards)
     self.batch_draw_x = batch_x
     self.batch_draw_y = batch_y
-    self.todraw = {}
     self.belongs_to = -100
 end
 
@@ -19,10 +18,9 @@ function Hand:update()
 end
 
 function Hand:draw()
+    self.batch:setColor(255, 255, 255, 0.3)
     love.graphics.draw(self.batch, 0, 0)
-    for i = 1, #self.todraw, 1 do
-        love.graphics.draw(self.todraw[i].image, self.batch_draw_x, self.batch_draw_y, 0, 1.5, 1.5)
-    end
+    self.batch:flush()
 end
 
 function Hand:updatebatch()
@@ -41,12 +39,6 @@ end
 
 function Hand:add(card)
     table.insert(self.cards, card)
-end
-
-function Hand:reveal()
-    -- TODO: reveal top card of hand
-    -- maybe have a separate pile of cards to draw to screen
-    table.insert(self.todraw, self.cards[1])
 end
 
 function Hand:updatesuits()
@@ -71,7 +63,6 @@ function Hand:remove(cardid)
             break
         end
     end
-    print('found idx: ' .. idx)
     if idx > -1 then
         local removed = table.remove(self.cards, idx)
         self:updatesuits() -- TODO: do we need this, update() should be called anyway

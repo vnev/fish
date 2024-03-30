@@ -6,12 +6,49 @@ local Hand = require "hand"
 local Player = require "player"
 local Utils = require "utils"
 local AssetLoader = require "asset_loader"
+local State = require "state"
 
 local Game = class("Game")
 
+function Game:loadSubdeckImages(card_images)
+    local img = {}
+
+    img["spades_low"] = {}
+    img["spades_high"] = {}
+    img["diamonds_low"] = {}
+    img["diamonds_high"] = {}
+    img["clubs_low"] = {}
+    img["clubs_high"] = {}
+    img["hearts_low"] = {}
+    img["hearts_high"] = {}
+
+    local suits = { "spades", "clubs", "diamonds", "hearts" }
+    local low = { "02", "03", "04", "05", "06", "07" }
+    local high = { "09", "10", "J", "Q", "K", "A" }
+
+    for i = 1, #low, 1 do
+        for j = 1, #suits, 1 do
+            local key = suits[j] .. low[i]
+            table.insert(img[suits[j] .. "_low"], card_images[key])
+        end
+    end
+
+    for i = 1, #high, 1 do
+        for j = 1, #suits, 1 do
+            local key = suits[j] .. high[i]
+            table.insert(img[suits[j] .. "_high"], card_images[key])
+        end
+    end
+
+    return img
+end
+
 function Game:initialize()
     self.card_images = AssetLoader:LoadAssets()
+    self.game_state = State:new()
+    self.steal_list = {}
     self.draw_list = {}
+    self.subdeck_images = self:loadSubdeckImages(self.card_images)
     self:loadCenterCards()
     self.deck = Deck:new()
     self.deck:populate(self.card_images)
@@ -85,7 +122,37 @@ function Game:update(delta)
 end
 
 function Game:click_event(x, y)
-    for i = 1, #self.players, 1 do
+    print('state: ' .. self.game_state.state)
+    if self.game_state.state == self.game_state.StateType.PLAYING then
+        self.game_state.state = self.game_state.StateType.PLAYER_STEALING
+        -- draw the card picker
+        local subdecks = {}
+        local count = 0
+        for i = 1, #self.active_player.hand.cards, 1 do
+            print('player hand has: ' .. self.active_player.hand.cards[i].id)
+            local key = self.active_player.hand.cards[i].suit .. "_" .. self.active_player.hand.cards[i].subdeck
+            if subdecks[key] == nil then
+                subdecks[key] = true
+                count = count + 1
+            end
+        end
+        local startx, starty = self.window_width / 2 - (50 * count), self.window_height / 2 - (55 * count)
+        for k, _ in pairs(subdecks) do
+            print('inserting ' .. k .. ' into steal list')
+            for j = 1, #self.subdeck_images[k], 1 do
+                table.insert(self.steal_list, { image = self.subdeck_images[k][j], x = startx, y = starty })
+                startx = startx + 100
+            end
+            starty = starty + 50 + self.card_img_height
+            startx = self.window_width / 2 - (50 * count)
+        end
+    elseif self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+        -- TODO: player is stealing from other team, register click events as guesses
+        -- based on which card is picked
+        --
+        -- after guessing, change state back to PLAYING after performing necessary updates
+    end
+    --[[for i = 1, #self.players, 1 do
         if self.players[i].teamid ~= self.active_team_id
         then
             if (x > self.players[i].hand.batch_draw_x) and (x < self.players[i].hand.batch_draw_x + self.card_img_width)
@@ -96,10 +163,12 @@ function Game:click_event(x, y)
                     self.active_team_id = self.players[i].teamid
                     self.active_player = self.players[i]
                     return
+                else
+                    -- todo: active player keeps guessing
                 end
             end
         end
-    end
+    end--]]
 end
 
 function Game:guess(guessed_hand, guessed_card)
@@ -120,12 +189,29 @@ function Game:guess(guessed_hand, guessed_card)
 end
 
 function Game:draw()
+    if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+        love.graphics.setColor(255, 255, 255, 0.3)
+    end
+
     for i = 1, #self.draw_list, 1 do
         love.graphics.draw(self.draw_list[i]["image"], self.draw_list[i]["x"],
             self.draw_list[i]["y"], 0, 1.5, 1.5)
     end
+
     for i = 1, #self.players, 1 do
+        if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+            print("hand has " .. self.players[i].hand.batch:getCount())
+            self.players[i].hand.batch:setColor(255, 255, 255, 0.3)
+        end
         self.players[i]:draw()
+    end
+
+    if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+        love.graphics.setColor(255, 255, 255, 1)
+    end
+    for i = 1, #self.steal_list, 1 do
+        love.graphics.draw(self.steal_list[i]["image"], self.steal_list[i]["x"],
+            self.steal_list[i]["y"], 0, 1.5, 1.5)
     end
 end
 
