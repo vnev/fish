@@ -18,22 +18,18 @@ function Hand:update()
 end
 
 function Hand:draw()
-    self.batch:setColor(255, 255, 255, 0.3)
+    self:updatebatch() -- TODO: this is a hack to make sure the alpha channel on the spritebatch images are updated, find a better way?
     love.graphics.draw(self.batch, 0, 0)
     self.batch:flush()
 end
 
 function Hand:updatebatch()
-    if self.batch:getCount() ~= #self.cards then -- only update spritebatch if a player's hand changed
-        if self.batch:getCount() ~= 0 then
-            self.batch:clear()
-        end
+    self.batch:clear()
 
-        local rotate = 0.0
-        for i = 1, #self.cards, 1 do
-            self.batch:add(self.batch_draw_x, self.batch_draw_y, rotate, 1.5, 1.5)
-            rotate = rotate + 0.01
-        end
+    local rotate = 0.0
+    for i = 1, #self.cards, 1 do
+        self.batch:add(self.batch_draw_x, self.batch_draw_y, rotate, 1.5, 1.5)
+        rotate = rotate + 0.01
     end
 end
 
