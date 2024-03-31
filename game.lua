@@ -48,6 +48,7 @@ function Game:initialize()
     end
 
     self.active_player = self.players[1]
+    self.stealing_from = nil
     self.active_team_id = self.teamA.id
     y = self.window_height - 150
     -- load team B
@@ -60,11 +61,6 @@ function Game:initialize()
         table.insert(self.players, player)
         self.teamB:addplayer(player.id)
     end
-    print('active player\'s ' .. self.active_player.id .. '\'s hand:')
-    for j = 1, #self.active_player.hand.cards, 1 do
-        print('    ' .. self.active_player.hand.cards[j].readable_id)
-    end
-    self.active_player:updatestealable(self.deck.cards)
 end
 
 function Game:loadCenterCards()
@@ -88,36 +84,82 @@ end
 function Game:update(delta)
     for i = 1, #self.players, 1 do
         self.players[i]:update()
+        self.players[i]:updatestealable(self.deck.cards)
     end
 end
 
 function Game:click_event(x, y)
     print('state: ' .. self.game_state.state)
+
     if self.game_state.state == self.game_state.StateType.PLAYING then
-        self.game_state.state = self.game_state.StateType.PLAYER_STEALING
-        -- draw the card picker
-        local subdecks = self.active_player.stealable
-        local count = 0
-        for _, _ in pairs(subdecks) do
-            count = count + 1
-        end
-        local startx, starty = self.window_width / 2 - (50 * count), self.window_height / 2 - (54 * count)
-        for k, v in pairs(subdecks) do
-            print("adding " .. #v .. " images for " .. k .. " to the steal list")
-            if #v > 0 then
-                for i = 1, #v, 1 do
-                    table.insert(self.steal_list, { image = v[i].image, x = startx, y = starty })
-                    startx = startx + 100
+        for i = 1, #self.players, 1 do
+            if self.players[i].teamid ~= self.active_player.teamid then
+                if (x > self.players[i].hand.batch_draw_x) and (x < self.players[i].hand.batch_draw_x + self.card_img_width)
+                    and (y > self.players[i].hand.batch_draw_y) and (y < self.players[i].hand.batch_draw_y + self.card_img_height)
+                then
+                    self.stealing_from = self.players[i]
+                    self.game_state.state = self.game_state.StateType.PLAYER_STEALING
+                    local subdecks = self.active_player.stealable
+                    local count = 0
+                    for _, _ in pairs(subdecks) do
+                        count = count + 1
+                    end
+                    local startx, starty = self.window_width / 2 - (50 * count), self.window_height / 2 - (54 * count)
+                    for k, v in pairs(subdecks) do
+                        print("adding " .. #v .. " images for " .. k .. " to the steal list")
+                        if #v > 0 then
+                            for j = 1, #v, 1 do
+                                table.insert(self.steal_list, { card = v[j], x = startx, y = starty })
+                                startx = startx + 100
+                            end
+                            starty = starty + 50 + self.card_img_height
+                            startx = self.window_width / 2 - (50 * count)
+                        end
+                    end
                 end
-                starty = starty + 50 + self.card_img_height
-                startx = self.window_width / 2 - (50 * count)
+                break
             end
         end
+        if self.stealing_from ~= nil then
+            print('stealing from ' .. self.stealing_from.id)
+            for i = 1, #self.stealing_from.hand.cards, 1 do
+                print(self.stealing_from.hand.cards[i].id)
+            end
+        end
+        -- draw the card picker
     elseif self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
         -- TODO: player is stealing from other team, register click events as guesses
         -- based on which card is picked
         --
         -- after guessing, change state back to PLAYING after performing necessary updates
+        print("STEALING")
+        local stolen = false
+        for i = 1, #self.steal_list, 1 do
+            if (x >= self.steal_list[i].x) and (x <= self.steal_list[i].x + self.card_img_width)
+                and (y >= self.steal_list[i].y) and (y <= self.steal_list[i].y + self.card_img_height)
+            then
+                print("trying to steal " .. self.steal_list[i].card.id)
+                -- currently trying to steal self.steal_list[i].card
+                for j = 1, #self.stealing_from.hand.cards, 1 do
+                    if self.stealing_from.hand.cards[j].id == self.steal_list[i].card.id then
+                        local stolen_card = self.stealing_from:give(self.stealing_from.hand.cards[j].id)
+                        self.active_player:take(stolen_card)
+                        print(self.active_player.id .. ' stole ' .. stolen_card.readable_id)
+                        stolen = true
+                        break
+                    end
+                end
+                if stolen then
+                    break
+                end
+            end
+        end
+        if not stolen then
+            self.active_player = self.stealing_from
+        end
+        self.stealing_from = nil
+        self.game_state.state = self.game_state.StateType.PLAYING
+        self.steal_list = {}
     end
     --[[for i = 1, #self.players, 1 do
         if self.players[i].teamid ~= self.active_team_id
@@ -176,7 +218,7 @@ function Game:draw()
         love.graphics.setColor(255, 255, 255, 1)
     end
     for i = 1, #self.steal_list, 1 do
-        love.graphics.draw(self.steal_list[i].image, self.steal_list[i].x,
+        love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
             self.steal_list[i].y, 0, 1.5, 1.5)
     end
 end

@@ -40,8 +40,8 @@ end
 function Hand:updatesuits()
     local suits = {}
     for i = 1, #self.cards, 1 do
-        if not suits[self.cards[i]["suit"]] then
-            suits[self.cards[i]["suit"]] = 1
+        if not suits[self.cards[i].suit] then
+            suits[self.cards[i].suit] = 1
         end
     end
     self.suits = suits

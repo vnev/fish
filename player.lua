@@ -11,6 +11,7 @@ function Player:initialize(hand, teamid)
     self.stealable = {}
 end
 
+-- ["suit_low/high": { card1, card2, card3}]
 function Player:updatestealable(all_cards)
     self.stealable = {}
 
@@ -20,25 +21,36 @@ function Player:updatestealable(all_cards)
         end
     end
 
+    -- TODO: INSANELY FUCKING UGLY, REFACTOR IMMEDIATELY
     for i = 1, #all_cards, 1 do
         local found = false
+        local tracker = {}
         for j = 1, #self.hand.cards, 1 do
             if self.hand.cards[j].suit == all_cards[i].suit and
-                self.hand.cards[j].subdeck == all_cards[i].subdeck and
-                all_cards[i].id ~= self.hand.cards[j].id
+                self.hand.cards[j].subdeck == all_cards[i].subdeck
             then
-                print('adding card id to stealable: ' .. all_cards[i].id)
-                found = true
-                break
+                if self.hand.cards[j].id == all_cards[i].id then
+                elseif tracker[all_cards[i].id] == nil then
+                    if self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] == nil then
+                        self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] = {}
+                    end
+                    table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck],
+                        Utils:copyarr_shallow(all_cards[i]))
+                    tracker[all_cards[i].id] = true
+                else
+                end
             end
         end
 
-        if found then
-            if self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] == nil then
-                self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] = {}
+        for _, v in pairs(self.stealable) do
+            for j = 1, #v, 1 do
+                for k = 1, #self.hand.cards, 1 do
+                    if self.hand.cards[k].id == v[j].id then
+                        table.remove(v, j)
+                        break
+                    end
+                end
             end
-            table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck],
-                Utils:copyarr_shallow(all_cards[i]))
         end
     end
 end
