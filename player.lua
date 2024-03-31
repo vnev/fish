@@ -22,6 +22,8 @@ function Player:updatestealable(all_cards)
     end
 
     -- TODO: INSANELY FUCKING UGLY, REFACTOR IMMEDIATELY
+    -- REFACTOR TO CREATE 1 FULL SET OF ALL SUBDECKS
+    -- THEN REMOVE CARDS IN HAND
     for i = 1, #all_cards, 1 do
         local found = false
         local tracker = {}

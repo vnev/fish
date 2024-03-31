@@ -24,7 +24,6 @@ function Deck:populate(cardimages)
                 img_key = img_key .. '0' .. rank
             end
             local card = Card:new(suit, rank, cardimages[img_key])
-            print('adding ' .. card.id)
             table.insert(self.cards, card)
         end
     end
