@@ -1,12 +1,11 @@
 local class = require "middleclass"
-local math = require "math"
 local Utils = require "utils"
 local love = require "love"
 local Player = class("Player")
 
-function Player:initialize(playerid, hand, teamid)
+function Player:initialize(playerid, hand, team)
     self.hand = hand
-    self.teamid = teamid
+    self.team = team
     self.id = playerid
     self.isactive = true
     self.stealable = {}

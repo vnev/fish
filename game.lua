@@ -4,7 +4,6 @@ local Team = require "team"
 local Deck = require "deck"
 local Hand = require "hand"
 local Player = require "player"
-local Utils = require "utils"
 local AssetLoader = require "asset_loader"
 local State = require "state"
 
@@ -34,7 +33,7 @@ function Game:initialize()
     -- load team A
     for i = 1, (#playerdecks / 2), 1 do
         local hand = Hand:new(playerdecks[i], i)
-        local player = Player:new(i, hand, self.teamA.id)
+        local player = Player:new(i, hand, self.teamA)
         player:updatestealable(self.deck.cards)
         table.insert(self.hands, hand)
         table.insert(self.players, player)
@@ -47,7 +46,7 @@ function Game:initialize()
     -- load team B
     for i = 4, #playerdecks, 1 do
         local hand = Hand:new(playerdecks[i], i)
-        local player = Player:new(i, hand, self.teamB.id)
+        local player = Player:new(i, hand, self.teamB)
         player:updatestealable(self.deck.cards)
         table.insert(self.hands, hand)
         table.insert(self.players, player)
@@ -55,6 +54,7 @@ function Game:initialize()
         self.teamB:addplayer(player)
     end
 
+    -- TODO: remove in the future, for testing single-player mode
     self.players[1].isstealing = true
     self.teamA.isstealing = true
 end
@@ -91,30 +91,32 @@ function Game:click_event(x, y)
     print('state: ' .. self.game_state.state)
 
     if self.game_state.state == self.game_state.StateType.PLAYING then
-        for i = 1, #self.players, 1 do
-            if self.players[i].teamid ~= self.active_player.teamid then
-                if (x >= self.players[i].hand.batch_draw_x) and (x <= self.players[i].hand.batch_draw_x + self.card_img_width)
-                    and (y >= self.players[i].hand.batch_draw_y) and (y <= self.players[i].hand.batch_draw_y + self.card_img_height)
-                then
-                    print(self.active_player.id .. ' clicked on ' .. self.players[i].id)
-                    self.stealing_from = self.players[i]
-                    self.game_state.state = self.game_state.StateType.PLAYER_STEALING
-                    local subdecks = self.active_player.stealable
-                    local count = 0
-                    for _, _ in pairs(subdecks) do
-                        count = count + 1
-                    end
-                    local startx, starty = self.window_width / 2 - (50 * count), self.window_height / 2 - (54 * count)
-                    for k, v in pairs(subdecks) do
-                        print("adding " .. #v .. " images for " .. k .. " to the steal list")
-                        if #v > 0 then
-                            for j = 1, #v, 1 do
-                                table.insert(self.steal_list, { card = v[j], x = startx, y = starty })
-                                startx = startx + 100
-                            end
-                            starty = starty + 50 + self.card_img_height
-                            startx = self.window_width / 2 - (50 * count)
+        local team
+        if self.active_player.team == self.teamA then team = self.teamA else team = self.teamB end
+
+        for i = 1, #team.players, 1 do
+            local player = team.players[i]
+            if (x >= team.card_batches[i].x) and (x <= team.card_batches[i].x + self.card_img_width)
+                and (y >= team.card_batches[i].y) and (y <= team.card_batches[i].y + self.card_img_height)
+            then
+                print(self.active_player.id .. ' clicked on ' .. player.id)
+                self.stealing_from = player
+                self.game_state.state = self.game_state.StateType.PLAYER_STEALING
+                local subdecks = self.active_player.stealable
+                local count = 0
+                for _, _ in pairs(subdecks) do
+                    count = count + 1
+                end
+                local startx, starty = self.window_width / 2 - (50 * count), self.window_height / 2 - (54 * count)
+                for k, v in pairs(subdecks) do
+                    print("adding " .. #v .. " images for " .. k .. " to the steal list")
+                    if #v > 0 then
+                        for j = 1, #v, 1 do
+                            table.insert(self.steal_list, { card = v[j], x = startx, y = starty })
+                            startx = startx + 100
                         end
+                        starty = starty + 50 + self.card_img_height
+                        startx = self.window_width / 2 - (50 * count)
                     end
                 end
             end
@@ -184,15 +186,13 @@ function Game:draw()
     end
 
     for i = 1, #self.players, 1 do
-        if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
-            self.players[i].hand.batch:setColor(255, 255, 255, 0.3)
-        end
         self.players[i]:draw()
     end
 
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
         love.graphics.setColor(255, 255, 255, 1)
     end
+
     for i = 1, #self.steal_list, 1 do
         love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
             self.steal_list[i].y, 0, 1.5, 1.5)
@@ -200,6 +200,13 @@ function Game:draw()
 
     self.teamA:draw()
     self.teamB:draw()
+
+    if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+        local team = self.active_player.team
+        for i = 1, #team.card_batches, 1 do
+            team.card_batches[i].batch:setColor(255, 255, 255, 0.3)
+        end
+    end
 end
 
 return Game
