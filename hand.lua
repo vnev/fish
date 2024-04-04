@@ -4,33 +4,18 @@ local love = require "love"
 local Hand = class("Hand")
 
 
-function Hand:initialize(cards, batch_img, batch_x, batch_y)
+function Hand:initialize(cards, belongs_to)
     self.cards = cards
-    self.batch = love.graphics.newSpriteBatch(batch_img, #cards)
-    self.batch_draw_x = batch_x
-    self.batch_draw_y = batch_y
-    self.belongs_to = -100
+    self.belongs_to = belongs_to -- player ID
 end
 
 function Hand:update()
     self:updatesuits()
-    self:updatebatch()
 end
 
 function Hand:draw()
     self:updatebatch() -- TODO: this is a hack to make sure the alpha channel on the spritebatch images are updated, find a better way?
-    love.graphics.draw(self.batch, 0, 0)
     self.batch:flush()
-end
-
-function Hand:updatebatch()
-    self.batch:clear()
-
-    local rotate = 0.0
-    for i = 1, #self.cards, 1 do
-        self.batch:add(self.batch_draw_x, self.batch_draw_y, rotate, 1.5, 1.5)
-        rotate = rotate + 0.01
-    end
 end
 
 function Hand:add(card)

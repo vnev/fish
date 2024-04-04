@@ -20,10 +20,8 @@ function Game:initialize()
     self.deck:populate(self.card_images)
     self.players = {}
     self.hands = {}
-    self.teamA = Team:new()
-    self.teamA.id = 1
-    self.teamB = Team:new()
-    self.teamB.id = 2
+    self.teamA = Team:new(1, self.card_images["card_back"])
+    self.teamB = Team:new(2, self.card_images["card_back"])
     self.card_img_width = 64
     self.card_img_height = 64
     self.window_width = 1024
@@ -32,40 +30,33 @@ function Game:initialize()
     self.active_team_id = -1
 
     local playerdecks = self.deck:distribute()
-    local y = 100
-    local xdiff = 100
 
     -- load team A
-    local playerid = 1
     for i = 1, (#playerdecks / 2), 1 do
-        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
-        local player = Player:new(hand, self.teamA.id)
-        player.id = playerid
-        playerid = playerid + 1
+        local hand = Hand:new(playerdecks[i], i)
+        local player = Player:new(i, hand, self.teamA.id)
         player:updatestealable(self.deck.cards)
-        hand.belongs_to = player.id
         table.insert(self.hands, hand)
         table.insert(self.players, player)
         print('adding player ' .. player.id .. ' to ' .. self.teamA.id)
-        self.teamA:addplayer(player.id)
+        self.teamA:addplayer(player)
     end
 
     self.active_player = self.players[1]
     self.stealing_from = nil
-    y = self.window_height - 150
     -- load team B
     for i = 4, #playerdecks, 1 do
-        local hand = Hand:new(playerdecks[i], self.card_images["card_back"], 200 + (xdiff * i), y)
-        local player = Player:new(hand, self.teamB.id)
-        player.id = playerid
-        playerid = playerid + 1
+        local hand = Hand:new(playerdecks[i], i)
+        local player = Player:new(i, hand, self.teamB.id)
         player:updatestealable(self.deck.cards)
-        hand.belongs_to = player.id
         table.insert(self.hands, hand)
         table.insert(self.players, player)
         print('adding player ' .. player.id .. ' to ' .. self.teamB.id)
-        self.teamB:addplayer(player.id)
+        self.teamB:addplayer(player)
     end
+
+    self.players[1].isstealing = true
+    self.teamA.isstealing = true
 end
 
 function Game:loadCenterCards()
@@ -91,6 +82,9 @@ function Game:update(delta)
         self.players[i]:update()
         self.players[i]:updatestealable(self.deck.cards)
     end
+
+    self.teamA:update()
+    self.teamB:update()
 end
 
 function Game:click_event(x, y)
@@ -203,6 +197,9 @@ function Game:draw()
         love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
             self.steal_list[i].y, 0, 1.5, 1.5)
     end
+
+    self.teamA:draw()
+    self.teamB:draw()
 end
 
 return Game

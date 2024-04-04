@@ -4,6 +4,7 @@ local Game = require "game"
 local game
 
 function love.load()
+    math.randomseed(os.time())
     print('loading')
     game = Game:new()
     love.window.setMode(game.window_width, game.window_height, { fullscreen = false })

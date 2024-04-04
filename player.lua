@@ -1,14 +1,16 @@
 local class = require "middleclass"
 local math = require "math"
 local Utils = require "utils"
+local love = require "love"
 local Player = class("Player")
 
-function Player:initialize(hand, teamid)
+function Player:initialize(playerid, hand, teamid)
     self.hand = hand
     self.teamid = teamid
-    self.id = math.random()
+    self.id = playerid
     self.isactive = true
     self.stealable = {}
+    self.isstealing = false
 end
 
 -- ["suit_low/high": { card1, card2, card3}]
@@ -62,7 +64,17 @@ function Player:update()
 end
 
 function Player:draw()
-    self.hand:draw()
+    -- this is a hack to only show player 1 hand on the bottom row, when doing multiplayer we need to remove the isstealing condition
+    if not self.isactive and not self.isstealing then
+        return
+    end
+
+    local draw_at_x, draw_at_y = 110, 650
+    local playerhand = self.hand
+    for i = 1, #playerhand.cards, 1 do
+        love.graphics.draw(playerhand.cards[i].image, draw_at_x, draw_at_y, 0, 1.5, 1.5)
+        draw_at_x = draw_at_x + 100
+    end
 end
 
 function Player:give(cardid)

@@ -37,7 +37,6 @@ function Deck:shuffle()
         -- terrible attempt at getting enough randomness for the shuffle
         -- should be fine since we only do this at the start of the game
         -- but maybe we should find a better way?
-        math.randomseed(math.random(900141, 10004519854))
         local j = math.random(i)
         self.cards[i], self.cards[j] = self.cards[j], self.cards[i]
     end
