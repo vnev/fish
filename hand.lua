@@ -15,7 +15,6 @@ end
 
 function Hand:draw()
     self:updatebatch() -- TODO: this is a hack to make sure the alpha channel on the spritebatch images are updated, find a better way?
-    self.batch:flush()
 end
 
 function Hand:add(card)

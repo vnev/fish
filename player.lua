@@ -37,8 +37,7 @@ function Player:updatestealable(all_cards)
                     if self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] == nil then
                         self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] = {}
                     end
-                    table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck],
-                        Utils:copyarr_shallow(all_cards[i]))
+                    table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck], all_cards[i])
                     tracker[all_cards[i].id] = true
                 else
                 end
@@ -64,7 +63,7 @@ end
 
 function Player:draw()
     -- this is a hack to only show player 1 hand on the bottom row, when doing multiplayer we need to remove the isstealing condition
-    if not self.isactive and not self.isstealing then
+    if not self.isactive or not self.isstealing then
         return
     end
 

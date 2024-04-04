@@ -149,7 +149,11 @@ function Game:click_event(x, y)
         end
         if not stolen then
             print('switching active player... current: ' .. self.active_player.id)
+            self.active_player.isstealing = false
+            self.active_player.team.isstealing = false
             self.active_player = self.stealing_from
+            self.active_player.isstealing = true
+            self.active_player.team.isstealing = true
             print('switching active player... new: ' .. self.active_player.id)
         end
         self.stealing_from = nil
@@ -177,7 +181,7 @@ end
 
 function Game:draw()
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
-        love.graphics.setColor(255, 255, 255, 0.3)
+        love.graphics.setColor(255, 255, 255, 0.15)
     end
 
     for i = 1, #self.draw_list, 1 do
@@ -190,22 +194,21 @@ function Game:draw()
     end
 
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
+        local team = self.stealing_from.team
+        for i = 1, #team.card_batches, 1 do
+            team.card_batches[i].batch:setColor(255, 255, 255, 0.15)
+        end
+    end
+    self.teamA:draw()
+    self.teamB:draw()
+
+    if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
         love.graphics.setColor(255, 255, 255, 1)
     end
 
     for i = 1, #self.steal_list, 1 do
         love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
             self.steal_list[i].y, 0, 1.5, 1.5)
-    end
-
-    self.teamA:draw()
-    self.teamB:draw()
-
-    if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
-        local team = self.active_player.team
-        for i = 1, #team.card_batches, 1 do
-            team.card_batches[i].batch:setColor(255, 255, 255, 0.3)
-        end
     end
 end
 
