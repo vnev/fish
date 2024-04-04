@@ -68,7 +68,7 @@ function Player:draw()
     end
 
     local xstart = 1024 / 2
-    local ystart = 600
+    local ystart = 550
     if self.hand.numsubdecks > 1 then
         xstart = xstart - (50 * self.hand.numsubdecks)
     end
@@ -79,7 +79,7 @@ function Player:draw()
             ystart = ystart + 25
         end
         xstart = xstart + 100
-        ystart = 600
+        ystart = 550
     end
 
     --local draw_at_x, draw_at_y = 110, 650

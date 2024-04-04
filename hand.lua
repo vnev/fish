@@ -51,7 +51,6 @@ function Hand:remove(cardid)
     end
     if idx > -1 then
         local removed = table.remove(self.cards, idx)
-        self:updatesuits() -- TODO: do we need this, update() should be called anyway
         return removed
     else
         return nil
