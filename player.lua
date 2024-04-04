@@ -67,12 +67,27 @@ function Player:draw()
         return
     end
 
-    local draw_at_x, draw_at_y = 110, 650
-    local playerhand = self.hand
-    for i = 1, #playerhand.cards, 1 do
-        love.graphics.draw(playerhand.cards[i].image, draw_at_x, draw_at_y, 0, 1.5, 1.5)
-        draw_at_x = draw_at_x + 100
+    local xstart = 1024 / 2
+    local ystart = 600
+    if self.hand.numsubdecks > 1 then
+        xstart = xstart - (50 * self.hand.numsubdecks)
     end
+
+    for _, v in pairs(self.hand.subdecks) do
+        for j = 1, #v, 1 do
+            love.graphics.draw(v[j].image, xstart, ystart, 0, 1.5, 1.5)
+            ystart = ystart + 25
+        end
+        xstart = xstart + 100
+        ystart = 600
+    end
+
+    --local draw_at_x, draw_at_y = 110, 650
+    --local playerhand = self.hand
+    --for i = 1, #playerhand.cards, 1 do
+    --    love.graphics.draw(playerhand.cards[i].image, draw_at_x, draw_at_y, 0, 1.5, 1.5)
+    --    draw_at_x = draw_at_x + 100
+    --end
 end
 
 function Player:give(cardid)

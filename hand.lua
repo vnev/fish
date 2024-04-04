@@ -7,28 +7,34 @@ local Hand = class("Hand")
 function Hand:initialize(cards, belongs_to)
     self.cards = cards
     self.belongs_to = belongs_to -- player ID
+    self.subdecks = {}
+    self.numsubdecks = 0
+    self:update()
 end
 
 function Hand:update()
-    self:updatesuits()
+    self:updatesubdecks()
 end
 
 function Hand:draw()
-    self:updatebatch() -- TODO: this is a hack to make sure the alpha channel on the spritebatch images are updated, find a better way?
 end
 
 function Hand:add(card)
     table.insert(self.cards, card)
 end
 
-function Hand:updatesuits()
-    local suits = {}
+function Hand:updatesubdecks()
+    self.numsubdecks = 0
+    self.subdecks = {}
+
     for i = 1, #self.cards, 1 do
-        if not suits[self.cards[i].suit] then
-            suits[self.cards[i].suit] = 1
+        local card = self.cards[i]
+        if self.subdecks[card.suit .. card.subdeck] == nil then
+            self.numsubdecks = self.numsubdecks + 1
+            self.subdecks[card.suit .. card.subdeck] = {}
         end
+        table.insert(self.subdecks[card.suit .. card.subdeck], card)
     end
-    self.suits = suits
 end
 
 function Hand:count()
