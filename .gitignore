@@ -3,3 +3,8 @@
 *.swp
 .zed/
 .vscode/
+noobhub/client/php
+noobhub/client/lua-defold
+noobhub/client/lua-gideros
+noobhub/client/javascript*
+noobhub/client/lua-moai

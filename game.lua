@@ -6,16 +6,22 @@ local Hand = require "hand"
 local Player = require "player"
 local AssetLoader = require "asset_loader"
 local State = require "state"
+require "noobhub/client/lua-love/noobhub"
+
 
 local Game = class("Game")
 
 function Game:initialize()
+    self.client_id = math.random(1, 20)
     self.card_images = AssetLoader:LoadAssets()
     self.game_state = State:new()
     self.steal_list = {}
     self.draw_list = {}
     self:loadCenterCards()
     self.deck = Deck:new()
+    self.connection = noobhub.new({ server = "127.0.0.1", port = 1337 })
+    print('established connection to server')
+
     self.deck:populate(self.card_images)
     self.font = love.graphics.newFont("Workbench.ttf", 16)
     print("loaded font workbench, dpi scale: " .. self.font:getDPIScale())
@@ -29,6 +35,13 @@ function Game:initialize()
     self.window_height = 850
     self.active_player = {}
     self.active_team_id = -1
+
+    self.connection:subscribe({
+        channel = "fish0",
+        callback = function(message)
+            print(message.clientid)
+        end,
+    })
 
     local playerdecks = self.deck:distribute()
 
@@ -52,13 +65,16 @@ function Game:initialize()
         player:updatestealable(self.deck.cards)
         table.insert(self.hands, hand)
         table.insert(self.players, player)
+
         print('adding player ' .. player.id .. ' to ' .. self.teamB.id)
         self.teamB:addplayer(player)
     end
-
     -- TODO: remove in the future, for testing single-player mode
     self.players[1].isstealing = true
     self.teamA.isstealing = true
+
+    print("connection is: ")
+    print(self.connection)
 end
 
 function Game:loadCenterCards()
@@ -87,6 +103,11 @@ function Game:update(delta)
 
     self.teamA:update()
     self.teamB:update()
+    self.connection:publish({
+        message = {
+            clientid = self.client_id
+        }
+    })
 end
 
 function Game:click_event(x, y)
