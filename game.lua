@@ -20,6 +20,9 @@ function Game:initialize()
     self:loadCenterCards()
     self.deck = Deck:new()
     self.connection = noobhub.new({ server = "127.0.0.1", port = 1337 })
+    if not self.connection then
+        error("failed to connect to Noob")
+    end
     print('established connection to server')
 
     self.deck:populate(self.card_images)
@@ -39,8 +42,8 @@ function Game:initialize()
     self.connection:subscribe({
         channel = "fish0",
         callback = function(message)
-            print(message.clientid)
-        end,
+            print(message.data.clientid .. ' client ping')
+        end
     })
 
     local playerdecks = self.deck:distribute()
@@ -75,6 +78,12 @@ function Game:initialize()
 
     print("connection is: ")
     print(self.connection)
+    self.connection:publish({
+        message = {
+            action = "update",
+            data = { clientid = self.client_id }
+        }
+    })
 end
 
 function Game:loadCenterCards()
@@ -96,6 +105,7 @@ function Game:loadCenterCards()
 end
 
 function Game:update(delta)
+    self.connection:enterFrame()
     for i = 1, #self.players, 1 do
         self.players[i]:update()
         self.players[i]:updatestealable(self.deck.cards)
@@ -103,11 +113,6 @@ function Game:update(delta)
 
     self.teamA:update()
     self.teamB:update()
-    self.connection:publish({
-        message = {
-            clientid = self.client_id
-        }
-    })
 end
 
 function Game:click_event(x, y)

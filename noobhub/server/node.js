@@ -21,8 +21,8 @@ const cfg = {
   port: 1337,
   wsPort: 2337, // comment out if you don't need websocket bridge
   buffer_size: 1024 * 16, // buffer allocated per each socket client
-  sendOwnMessagesBack: true // if disabled, clients don't get their own messages back
-  // verbose: true, // set to true to capture lots of debug info
+  sendOwnMessagesBack: true, // if disabled, clients don't get their own messages back
+  verbose: true // set to true to capture lots of debug info
 };
 
 const sockets = {}; // this is where we store all current client socket connections
@@ -180,4 +180,4 @@ server.on('listening', () => {
   );
 });
 
-server.listen(cfg.port, '::');
+server.listen(cfg.port, '127.0.0.1');
