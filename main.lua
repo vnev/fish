@@ -7,6 +7,7 @@ function love.load()
     math.randomseed(os.time())
     print('loading')
     game = Game:new()
+    love.window.setTitle("Fish")
     love.window.setMode(game.window_width, game.window_height, { fullscreen = false })
 end
 

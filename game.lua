@@ -17,6 +17,8 @@ function Game:initialize()
     self:loadCenterCards()
     self.deck = Deck:new()
     self.deck:populate(self.card_images)
+    self.font = love.graphics.newFont("Workbench.ttf", 16)
+    print("loaded font workbench, dpi scale: " .. self.font:getDPIScale())
     self.players = {}
     self.hands = {}
     self.teamA = Team:new(1, self.card_images["card_back"])
@@ -24,7 +26,7 @@ function Game:initialize()
     self.card_img_width = 64
     self.card_img_height = 64
     self.window_width = 1024
-    self.window_height = 768
+    self.window_height = 850
     self.active_player = {}
     self.active_team_id = -1
 
@@ -61,7 +63,7 @@ end
 
 function Game:loadCenterCards()
     local diamond08 = self.card_images["diamonds08"]
-    local x, y = 300, 768 / 2 - 50
+    local x, y = 300, 768 / 2 - 125
     table.insert(self.draw_list, { image = diamond08, x = x, y = y })
 
     x = 400
@@ -89,6 +91,10 @@ end
 
 function Game:click_event(x, y)
     print('state: ' .. self.game_state.state)
+
+    local text = love.graphics.newText(self.font,
+        "Player " .. self.active_player.id .. " is stealing")
+    love.graphics.draw(text, 400, 300, 0, 1, 1)
 
     if self.game_state.state == self.game_state.StateType.PLAYING then
         local team
