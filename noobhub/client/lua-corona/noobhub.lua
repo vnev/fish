@@ -47,13 +47,15 @@ noobhub = {
             self.sock:setoption('tcp-nodelay', true) -- disable Nagle's algorithm for the connection
             self.sock:settimeout(0)
             local input, output = socket.select(nil, { self.sock }, 3)
-            for i, v in ipairs(output) do v:send("__REGISTER__" ..
-                self.channel .. '*' .. params.player_id .. "__ENDREGISTER__"); end
+            for i, v in ipairs(output) do
+                v:send("__REGISTER__" ..
+                    self.channel .. '*' .. params.player_id .. "__ENDREGISTER__");
+            end
             return true
         end
 
         function self:subscribe(params)
-            self.channel = params.channel or 'test-channel'
+            self.channel = params.channel;
             self.callback = params.callback or function() end
             self.sock, error_message = socket.connect(self.server, self.port)
             if (self.sock == nil) then
@@ -64,7 +66,10 @@ noobhub = {
             self.sock:setoption('tcp-nodelay', true) -- disable Nagle's algorithm for the connection
             self.sock:settimeout(0)
             local input, output = socket.select(nil, { self.sock }, 3)
-            for i, v in ipairs(output) do v:send("__SUBSCRIBE__" .. self.channel .. "__ENDSUBSCRIBE__"); end
+            for i, v in ipairs(output) do
+                v:send("__SUBSCRIBE__" ..
+                    self.channel .. '*' .. params.player_id .. "__ENDSUBSCRIBE__");
+            end
             return true
         end
 

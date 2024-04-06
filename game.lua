@@ -14,6 +14,7 @@ local Game = class("Game")
 function Game:initialize()
     self.card_images = AssetLoader:LoadAssets()
     self.game_state = State:new() -- state starts as StateType.CONNECTING, click events will not register till all 6 players have connected
+    self.game_state.state = self.game_state.StateType.JOINING_GAME
     self.steal_list = {}
     self.draw_list = {}
     self.connected_players = {}
@@ -39,25 +40,6 @@ function Game:initialize()
     self.window_height = 850
     self.active_player = {}
     self.active_team_id = -1
-
-
-    --[[self.connection:subscribe({
-        channel = "fish0",
-        callback = function(message)
-            if message.action == "connect" then
-                print(message.data.client)
-                table.insert(self.connected_players, message.data.client)
-                if #self.connected_players == 6 then
-                    print('we have 6 players... its a go')
-                    self.connection:publish({
-                        action = "begin_play",
-                        data = { clients = self.connected_players }
-                    })
-
-                end
-            end
-        end
-    })--]]
 
     local playerdecks = self.deck:distribute()
 
@@ -86,30 +68,49 @@ function Game:initialize()
     self.players[1].isstealing = true
     self.teamA.isstealing = true
 
-    -- if self.game_state.state == self.game_state.StateType.CREATING_GAME
-    self.channel = math.random(4000, 990000)
-    self.connection:registerchannel({
-        channel = self.channel,
-        player_id = self.active_player.id,
-        callback = function(message)
-            if message.action == "connect" then
-                print(message.data.client)
-                table.insert(self.connected_players, message.data.client)
-                if #self.connected_players == 6 then
-                    print('we have 6 players... its a go')
-                    self.connection:publish({
-                        action = "begin_play",
-                        data = { clients = self.connected_players }
-                    })
+    if self.game_state.state == self.game_state.StateType.CREATING_GAME then
+        self.channel = math.random(4000, 990000)
+        self.connection:registerchannel({
+            channel = self.channel,
+            player_id = self.active_player.id,
+            callback = function(message)
+                print('IN CREATOR CALLBACK')
+                if message.action == "connect" then
+                    print('new client connection: ' .. message.data.client)
+                    table.insert(self.connected_players, message.data.client)
+                    if #self.connected_players == 6 then
+                        print('we have 6 players... its a go')
+                        self.connection:publish({
+                            action = "begin_play",
+                            data = { clients = self.connected_players }
+                        })
+                    end
                 end
             end
-        end
-    })
-
+        })
+    elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
+        self.connection:subscribe({
+            channel = 96347,
+            player_id = 2,
+            callback = function(message)
+                if message.action == "connect" then
+                    print(message.data.client)
+                    table.insert(self.connected_players, message.data.client)
+                    if #self.connected_players == 6 then
+                        print('we have 6 players... its a go')
+                        self.connection:publish({
+                            action = "begin_play",
+                            data = { clients = self.connected_players }
+                        })
+                    end
+                end
+            end
+        })
+    end
     self.connection:publish({
         message = {
             action = "connect",
-            data = { client = self.client_id }
+            data = { client = 'blick2' }
         }
     })
 end
@@ -133,7 +134,7 @@ function Game:loadCenterCards()
 end
 
 function Game:update(delta)
-    --    self.connection:enterFrame()
+    self.connection:enterFrame()
     for i = 1, #self.players, 1 do
         self.players[i]:update()
         self.players[i]:updatestealable(self.deck.cards)
@@ -150,7 +151,10 @@ function Game:click_event(x, y)
         "Player " .. self.active_player.id .. " is stealing")
     love.graphics.draw(text, 400, 300, 0, 1, 1)
 
-    if self.game_state.state == self.game_state.StateType.CONNECTING then
+    if self.game_state.state == self.game_state.StateType.CONNECTING or
+        self.game_state.state == self.game_state.StateType.CREATING_GAME or
+        self.game_state.state == self.game_state.StateType.JOINING_GAME then
+        -- dont do anything
     elseif self.game_state.state == self.game_state.StateType.PLAYING then
         local team
         if self.active_player.team == self.teamA then team = self.teamA else team = self.teamB end

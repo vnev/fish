@@ -147,31 +147,38 @@ server.on('connection', (socket) => {
         channel_ids[new_join_code] = socket.channel;
       }
 
-      var creator_player_id = str.substring(creator_player_id_div + 1, end);
+      var creator_player_id = parseInt(
+        str.substring(creator_player_id_div + 1, end)
+      );
       Games[socket.channel] = {
         active: true,
-        player_ids: [creator_player_id]
+        player_ids: [creator_player_id],
+        active_player_id: creator_player_id
       };
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
       sockets[socket.channel][socket.connectionId] = socket;
       _log(
-        `Created game at channel ${socket.channel} by player with ID ${creator_player_id}`
+        `Created game at channel ${socket.channel} by player with ID ${Games[socket.channel].active_player_id}`
       );
     } else if (
-      (start = str.indexof('__FETCH__')) !== -1 &&
+      (start = str.indexOf('__FETCH__')) !== -1 &&
       (end = str.indexOf('__ENDFETCH__')) !== -1
     ) {
     } else if (
       (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
       (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
     ) {
-      socket.channel = str.substr(start + 13, end - (start + 13));
+      var player_id_div = str.indexOf('*');
+      socket.channel = str.substring(start + 13, player_id_div);
       socket.write('Hello. Noobhub online. \r\n');
       _log(
         `TCP Client ${socket.connectionId} subscribes for channel: ${socket.channel}`
       );
+      var player_id = parseInt(str.substring(player_id_div + 1, end));
+
+      Games[socket.channel].player_ids.push(player_id);
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
@@ -194,10 +201,10 @@ server.on('connection', (socket) => {
         const payload = '__JSON__START__' + json + '__JSON__END__';
 
         sendAsWsMessage && sendAsWsMessage(payload, socket.channel);
-
         const channelSockets = sockets[socket.channel];
         if (channelSockets) {
           const subscribers = Object.values(channelSockets);
+          _log(`subscribers are: ${JSON.stringify(subscribers)}`);
           for (let sub of subscribers) {
             if (!cfg.sendOwnMessagesBack && sub === socket) {
               continue;
