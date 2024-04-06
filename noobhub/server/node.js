@@ -25,7 +25,23 @@ const cfg = {
   verbose: true // set to true to capture lots of debug info
 };
 
-const sockets = {}; // this is where we store all current client socket connections
+let Games = {};
+
+/*
+    on first player connect, inject socket channel into payload?
+    Games consists of:
+    "socket_channel_id": {
+        "lobby_id": 1234,
+        "active": true/false,
+        "players": [1, 2, 3, 4, 5, 6], # maybe store their sockets in this?
+        "player_statuses": ["connected", "connected", "connecting", "connecting", "connected", "dropped],
+
+    }
+*/
+
+// map of join code to channel ID
+let channel_ids = {};
+const sockets = {}; // this is where we store all current client socket connections, map of channel ID to game
 
 let sendAsWsMessage;
 
@@ -85,20 +101,72 @@ server.on('connection', (socket) => {
     let start;
     let end;
     let str = socket.buffer.slice(0, socket.buffer.len).toString();
-
-    // PROCESS SUBSCRIPTION 1ST
+    // PROCESS REGISTRATION 1ST
     if (
-      (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
-      (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
+      (start = str.indexOf('__REGISTER__')) !== -1 &&
+      (end = str.indexOf('__ENDREGISTER__')) !== -1
     ) {
-      // if socket was on another channel delete the old reference
+      let creator_player_id_div = str.indexOf('*');
+      socket.channel = str.substring(start + 12, creator_player_id_div - 1);
       if (
         socket.channel &&
         sockets[socket.channel] &&
         sockets[socket.channel][socket.connectionId]
       ) {
+        _log(`Found existing channel with ID: ${socket.channel}`);
         delete sockets[socket.channel][socket.connectionId];
+        var join_code_found = '';
+        for (let [join_code, channel_id] in channel_ids) {
+          if (channel_id == socket.channel) {
+            join_code_found = join_code;
+            break;
+          }
+        }
+
+        if (join_code_found != '') {
+          if (Games[channel_ids[join_code_found]].active === true) {
+            _log('FATAL: CHANNEL IDs ARE CONFLICTING AND I CANNOT RESOLVE.');
+            return;
+          }
+          channel_ids[join_code_found] = socket.channel;
+          // just reset the game object associated with the channel
+        } else {
+          var new_join_code = Math.random().toString(36).slice(2);
+          while (new_join_code in channel_ids) {
+            _log('FATAL: Join code exists - - generating new one');
+            new_join_code = Math.random().toString(36).slice(2);
+          }
+          channel_ids[new_join_code] = socket.channel;
+        }
+      } else {
+        var new_join_code = Math.random().toString(36).slice(2);
+        while (new_join_code in channel_ids) {
+          _log('FATAL: Join code exists - - generating new one');
+          new_join_code = Math.random().toString(36).slice(2);
+        }
+        channel_ids[new_join_code] = socket.channel;
       }
+
+      var creator_player_id = str.substring(creator_player_id_div + 1, end);
+      Games[socket.channel] = {
+        active: true,
+        player_ids: [creator_player_id]
+      };
+      str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
+      socket.buffer.len = socket.buffer.write(str, 0);
+      sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
+      sockets[socket.channel][socket.connectionId] = socket;
+      _log(
+        `Created game at channel ${socket.channel} by player with ID ${creator_player_id}`
+      );
+    } else if (
+      (start = str.indexof('__FETCH__')) !== -1 &&
+      (end = str.indexOf('__ENDFETCH__')) !== -1
+    ) {
+    } else if (
+      (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
+      (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
+    ) {
       socket.channel = str.substr(start + 13, end - (start + 13));
       socket.write('Hello. Noobhub online. \r\n');
       _log(

@@ -34,6 +34,24 @@ noobhub = {
         self.server = params.server
         self.port = params.port
 
+        -- this function is primarily for when a player is creating a new lobby
+        function self:registerchannel(params)
+            self.channel = params.channel
+            self.callback = params.callback or function() end
+            self.sock, error_message = socket.connect(self.server, self.port)
+            if (self.sock == nil) then
+                print("Noobhub connection error: " .. error_message)
+                print "Problems with server..?"
+                return false
+            end
+            self.sock:setoption('tcp-nodelay', true) -- disable Nagle's algorithm for the connection
+            self.sock:settimeout(0)
+            local input, output = socket.select(nil, { self.sock }, 3)
+            for i, v in ipairs(output) do v:send("__REGISTER__" ..
+                self.channel .. '*' .. params.player_id .. "__ENDREGISTER__"); end
+            return true
+        end
+
         function self:subscribe(params)
             self.channel = params.channel or 'test-channel'
             self.callback = params.callback or function() end
