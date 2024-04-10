@@ -52,6 +52,10 @@ for (let suit of suits) {
   }
 }
 
+function randomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
 function shuffle(array) {
   let currentIndex = array.length;
 
@@ -157,8 +161,15 @@ server.on('connection', (socket) => {
         active: true,
         player_ids: [player_id],
         active_player_id: player_id,
+        stealing_from: -1,
+        teams: { 0: [], 1: [] },
         player_hands: player_hands
       };
+
+      var team = randomInt(2);
+      if (Games[socket.channel].teams[team].length < 3)
+        // should always be true when its a game host since new game is being registered
+        Games[socket.channel].teams[team].push(player_id);
       socketIdToPlayerId_map[socket.connectionId] = player_id;
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
@@ -174,6 +185,8 @@ server.on('connection', (socket) => {
         status: 'ok',
         player_id: player_id,
         join_code: socket.channel,
+        active_player_id: Games[socket.channel].active_player_id,
+        team: team,
         hand: Games[socket.channel].player_hands[player_id]
       };
       socket.isConnected &&
@@ -189,6 +202,9 @@ server.on('connection', (socket) => {
       (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
       (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
     ) {
+      if (Games[socket.channel].player_ids.length === 6) {
+        return;
+      }
       socket.channel = str.substring(start + 13, end);
       socket.write('Hello. Noobhub online. \r\n');
       _log(
@@ -202,6 +218,13 @@ server.on('connection', (socket) => {
 
       Games[socket.channel].player_ids.reverse();
       Games[socket.channel].player_ids.push(assigned_player_id);
+
+      var team = randomInt(2);
+      while (Games[socket.channel].teams[team].length === 3) {
+        team = randomInt(2);
+      }
+      Games[socket.channel].teams[team].push(team);
+
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
@@ -211,6 +234,8 @@ server.on('connection', (socket) => {
         status: 'ok',
         player_id: assigned_player_id,
         join_code: socket.channel,
+        active_player_id: Games[socket.channel].active_player_id,
+        team: team,
         hand: Games[socket.channel].player_hands[assigned_player_id]
       };
       socket.isConnected &&
@@ -219,12 +244,13 @@ server.on('connection', (socket) => {
         ) &&
         _log('Writing ' + JSON.stringify(payload) + 'to client socket');
 
-      payload = {
-        status: 'begin_game',
-        active_player: Games[socket.channel].active_player_id
-        // each player's hand
-      };
       if (Games[socket.channel].player_ids.length === 6) {
+        // if we have all players, then let everyone know we're good to go
+        payload = {
+          status: 'begin_game',
+          active_player_id: Games[socket.channel].active_player_id
+          // each player's hand
+        };
         const channelSockets = sockets[socket.channel];
         if (channelSockets) {
           const subscribers = Object.values(channelSockets);

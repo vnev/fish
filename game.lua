@@ -8,16 +8,8 @@ local AssetLoader = require "asset_loader"
 local State = require "state"
 require "noobhub/client/lua-love/noobhub"
 
-
 local Game = class("Game")
 
-local function _callback(message)
-    print('player id: ' .. message.player_id)
-    print('player hand: ')
-    for i = 1, #message.hand, 1 do
-        print(message.hand[i])
-    end
-end
 
 function Game:initialize()
     self.card_images = AssetLoader:LoadAssets()
@@ -25,64 +17,102 @@ function Game:initialize()
     --self.game_state.state = self.game_state.StateType.JOINING_GAME
     self.steal_list = {}
     self.draw_list = {}
-    self.connected_players = {}
-    table.insert(self.connected_players, self.client_id)
     self:loadCenterCards()
     self.deck = Deck:new()
+    self.deck:populate(self.card_images)
     self.connection = noobhub.new({ server = "127.0.0.1", port = 1337 })
     if not self.connection then
         error("failed to connect to Noob")
     end
     print('established connection to server')
 
-    self.deck:populate(self.card_images)
     self.font = love.graphics.newFont("Workbench.ttf", 16)
-    self.players = {}
-    self.hands = {}
-    self.teamA = Team:new(1, self.card_images["card_back"])
-    self.teamB = Team:new(2, self.card_images["card_back"])
+    self.teamA = Team:new(0, self.card_images["card_back"])
+    self.teamB = Team:new(1, self.card_images["card_back"])
     self.card_img_width = 64
     self.card_img_height = 64
     self.window_width = 1024
     self.window_height = 850
-    self.active_player = {}
-    self.active_team_id = -1
+    self.player = {}
 
-    local playerdecks = self.deck:distribute()
-
-    -- load team A
-    for i = 1, (#playerdecks / 2), 1 do
-        local hand = Hand:new(playerdecks[i], i)
-        local player = Player:new(i, hand, self.teamA)
-        player:updatestealable(self.deck.cards)
-        table.insert(self.hands, hand)
-        table.insert(self.players, player)
-        self.teamA:addplayer(player)
-    end
-
-    self.active_player = self.players[1]
     self.stealing_from = nil
-    -- load team B
-    for i = 4, #playerdecks, 1 do
-        local hand = Hand:new(playerdecks[i], i)
-        local player = Player:new(i, hand, self.teamB)
-        player:updatestealable(self.deck.cards)
-        table.insert(self.hands, hand)
-        table.insert(self.players, player)
-        self.teamB:addplayer(player)
-    end
-    -- TODO: remove in the future, for testing single-player mode
-    self.players[1].isstealing = true
-    self.teamA.isstealing = true
 
     if self.game_state.state == self.game_state.StateType.CREATING_GAME then
         self.connection:registerchannel({
-            callback = _callback
+            callback = function(message)
+                local hand = {}
+                if message.join_code then
+                    print('join code: ' .. message.join_code)
+                end
+                if message.hand then
+                    hand = Hand:new(self.deck:from(message.hand), -1)
+                end
+                if message.player_id and message.team then
+                    assert(hand)
+                    local team
+                    if message.team == 0 then
+                        team = self.teamA
+                    else
+                        team = self.teamB
+                    end
+                    self.player = Player:new(message.player_id, hand, team)
+                    hand.belongs_to = self.player.id
+                    print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
+                    team:addplayer(self.player)
+                end
+                if message.active_player_id then
+                    if message.active_player_id == self.player.id then
+                        print('setting active client to this client')
+                        self.player.isstealing = true
+                    else
+                        self.player.isstealing = false
+                    end
+                end
+
+                print('player hand: ')
+                for i = 1, #message.hand, 1 do
+                    print(message.hand[i])
+                end
+            end
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = 'pab4gcp5jr',
-            callback = _callback
+            channel = 'plrl93t5qhm',
+            callback = function(message)
+                local hand = {}
+                if message.join_code then
+                    print('join code: ' .. message.join_code)
+                end
+                if message.hand then
+                    hand = Hand:new(self.deck:from(message.hand), -1)
+                end
+                if message.player_id and message.team then
+                    assert(hand)
+                    local team
+                    if message.team == 0 then
+                        team = self.teamA
+                    else
+                        team = self.teamB
+                    end
+                    self.player = Player:new(message.player_id, hand, team)
+                    hand.belongs_to = self.player.id
+                    print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
+                    team:addplayer(self.player)
+                end
+                if message.active_player_id then
+                    if message.active_player_id == self.player.id then
+                        print('setting active client to this client')
+                        self.player.isstealing = true
+                    else
+                        self.player.isstealing = false
+                    end
+                end
+
+                print('player hand: ')
+                for i = 1, #message.hand, 1 do
+                    print(message.hand[i])
+                end
+            end
         })
     end
 end
@@ -107,10 +137,8 @@ end
 
 function Game:update(delta)
     self.connection:enterFrame()
-    for i = 1, #self.players, 1 do
-        self.players[i]:update()
-        self.players[i]:updatestealable(self.deck.cards)
-    end
+    self.player:update()
+    self.player:updatestealable(self.deck.cards)
 
     self.teamA:update()
     self.teamB:update()
@@ -120,7 +148,7 @@ function Game:click_event(x, y)
     print('state: ' .. self.game_state.state)
 
     local text = love.graphics.newText(self.font,
-        "Player " .. self.active_player.id .. " is stealing")
+        "Player " .. self.player.id .. " is stealing")
     love.graphics.draw(text, 400, 300, 0, 1, 1)
 
     if self.game_state.state == self.game_state.StateType.CONNECTING or
@@ -129,17 +157,17 @@ function Game:click_event(x, y)
         -- dont do anything
     elseif self.game_state.state == self.game_state.StateType.PLAYING then
         local team
-        if self.active_player.team == self.teamA then team = self.teamA else team = self.teamB end
+        if self.player.team == self.teamA then team = self.teamA else team = self.teamB end
 
         for i = 1, #team.players, 1 do
             local player = team.players[i]
             if (x >= team.card_batches[i].x) and (x <= team.card_batches[i].x + self.card_img_width)
                 and (y >= team.card_batches[i].y) and (y <= team.card_batches[i].y + self.card_img_height)
             then
-                print(self.active_player.id .. ' clicked on ' .. player.id)
+                print(self.player.id .. ' clicked on ' .. player.id)
                 self.stealing_from = player
                 self.game_state.state = self.game_state.StateType.PLAYER_STEALING
-                local subdecks = self.active_player.stealable
+                local subdecks = self.player.stealable
                 local count = 0
                 for _, _ in pairs(subdecks) do
                     count = count + 1
@@ -173,8 +201,8 @@ function Game:click_event(x, y)
                 for j = 1, #self.stealing_from.hand.cards, 1 do
                     if self.stealing_from.hand.cards[j].id == self.steal_list[i].card.id then
                         local stolen_card = self.stealing_from:give(self.stealing_from.hand.cards[j].id)
-                        self.active_player:take(stolen_card)
-                        print(self.active_player.id .. ' stole ' .. stolen_card.readable_id)
+                        self.player:take(stolen_card)
+                        print(self.player.id .. ' stole ' .. stolen_card.readable_id)
                         stolen = true
                         break
                     end
@@ -226,9 +254,7 @@ function Game:draw()
             self.draw_list[i].y, 0, 1.5, 1.5)
     end
 
-    for i = 1, #self.players, 1 do
-        self.players[i]:draw()
-    end
+    self.player:draw()
 
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
         local team = self.stealing_from.team

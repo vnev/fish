@@ -42,26 +42,25 @@ function Deck:shuffle()
     end
 end
 
-function Deck:distribute()
-    -- distribute 8 cards to the 6 players
-    -- maybe shuffle after every 8 cards are pulled?
-    local playerdecks = {}
+function Deck:from(cards)
     self:shuffle()
     local cardscopy = Utils:copyarr_shallow(self.cards)
 
     -- TODO: figure out why I have to do the last copy separately
-    for i = 1, 5, 1 do
-        local currdeck = {}
-        for j = 1, 8, 1 do
-            local newcard = table.remove(cardscopy, j)
-            table.insert(currdeck, newcard)
+    local currdeck = {}
+    for j = 1, #cards, 1 do
+        local newcard = {}
+        for x = 1, #cardscopy, 1 do
+            if cardscopy[x].id == cards[j] then
+                newcard = table.remove(cardscopy, x)
+                break
+            end
         end
-        playerdecks[i] = currdeck
+        assert(newcard)
+        table.insert(currdeck, newcard)
     end
-    playerdecks[6] = cardscopy
 
-    print("playerdecks: " .. #playerdecks .. ", cards: " .. #self.cards)
-    return playerdecks
+    return currdeck
 end
 
 return Deck

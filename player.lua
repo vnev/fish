@@ -12,7 +12,7 @@ function Player:initialize(playerid, hand, team)
     self.isstealing = false
 end
 
--- ["suit_low/high": { card1, card2, card3}]
+-- ["suit_low/high": { card1, card2, card3 }]
 function Player:updatestealable(all_cards)
     self.stealable = {}
 
@@ -26,7 +26,6 @@ function Player:updatestealable(all_cards)
     -- REFACTOR TO CREATE 1 FULL SET OF ALL SUBDECKS
     -- THEN REMOVE CARDS IN HAND
     for i = 1, #all_cards, 1 do
-        local found = false
         local tracker = {}
         for j = 1, #self.hand.cards, 1 do
             if self.hand.cards[j].suit == all_cards[i].suit and
