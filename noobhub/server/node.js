@@ -40,8 +40,36 @@ let Games = {};
 */
 
 // map of join code to channel ID
-let channel_ids = {};
+let socketIdToPlayerId_map = {};
 const sockets = {}; // this is where we store all current client socket connections, map of channel ID to game
+const suits = ['hearts', 'spades', 'diamonds', 'clubs'];
+const ranks = ['2', '3', '4', '5', '6', '7', '9', '10', '11', '12', '13', '14'];
+let cards = [];
+
+for (let suit of suits) {
+  for (let rank of ranks) {
+    cards.push(suit + rank);
+  }
+}
+
+function shuffle(array) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex]
+    ];
+  }
+}
+
+shuffle(cards);
 
 let sendAsWsMessage;
 
@@ -106,55 +134,32 @@ server.on('connection', (socket) => {
       (start = str.indexOf('__REGISTER__')) !== -1 &&
       (end = str.indexOf('__ENDREGISTER__')) !== -1
     ) {
-      let creator_player_id_div = str.indexOf('*');
-      socket.channel = str.substring(start + 12, creator_player_id_div - 1);
-      if (
-        socket.channel &&
-        sockets[socket.channel] &&
-        sockets[socket.channel][socket.connectionId]
-      ) {
-        _log(`Found existing channel with ID: ${socket.channel}`);
-        delete sockets[socket.channel][socket.connectionId];
-        var join_code_found = '';
-        for (let [join_code, channel_id] in channel_ids) {
-          if (channel_id == socket.channel) {
-            join_code_found = join_code;
-            break;
-          }
-        }
-
-        if (join_code_found != '') {
-          if (Games[channel_ids[join_code_found]].active === true) {
-            _log('FATAL: CHANNEL IDs ARE CONFLICTING AND I CANNOT RESOLVE.');
-            return;
-          }
-          channel_ids[join_code_found] = socket.channel;
-          // just reset the game object associated with the channel
-        } else {
-          var new_join_code = Math.random().toString(36).slice(2);
-          while (new_join_code in channel_ids) {
-            _log('FATAL: Join code exists - - generating new one');
-            new_join_code = Math.random().toString(36).slice(2);
-          }
-          channel_ids[new_join_code] = socket.channel;
-        }
-      } else {
-        var new_join_code = Math.random().toString(36).slice(2);
-        while (new_join_code in channel_ids) {
-          _log('FATAL: Join code exists - - generating new one');
-          new_join_code = Math.random().toString(36).slice(2);
-        }
-        channel_ids[new_join_code] = socket.channel;
+      var new_chan = Math.random().toString(36).slice(2);
+      while (Games[new_chan]) {
+        new_chan = Math.random().toString(36).slice(2);
       }
 
-      var creator_player_id = parseInt(
-        str.substring(creator_player_id_div + 1, end)
-      );
+      var all_cards_shuffled = [...cards];
+      shuffle(all_cards_shuffled);
+      socket.channel = new_chan;
+
+      var player_hands = {
+        1: all_cards_shuffled.slice(0, 8),
+        2: all_cards_shuffled.slice(8, 16),
+        3: all_cards_shuffled.slice(16, 24),
+        4: all_cards_shuffled.slice(24, 32),
+        5: all_cards_shuffled.slice(32, 40),
+        6: all_cards_shuffled.slice(40, 48)
+      };
+
+      var player_id = 1;
       Games[socket.channel] = {
         active: true,
-        player_ids: [creator_player_id],
-        active_player_id: creator_player_id
+        player_ids: [player_id],
+        active_player_id: player_id,
+        player_hands: player_hands
       };
+      socketIdToPlayerId_map[socket.connectionId] = player_id;
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
@@ -162,6 +167,20 @@ server.on('connection', (socket) => {
       _log(
         `Created game at channel ${socket.channel} by player with ID ${Games[socket.channel].active_player_id}`
       );
+
+      console.log('Hand is:');
+      console.log(Games[socket.channel].player_hands[player_id]);
+      var payload = {
+        status: 'ok',
+        player_id: player_id,
+        join_code: socket.channel,
+        hand: Games[socket.channel].player_hands[player_id]
+      };
+      socket.isConnected &&
+        socket.write(
+          '__JSON__START__' + JSON.stringify(payload) + '__JSON__END__'
+        ) &&
+        _log('Writing ' + JSON.stringify(payload) + 'to client socket');
     } else if (
       (start = str.indexOf('__FETCH__')) !== -1 &&
       (end = str.indexOf('__ENDFETCH__')) !== -1
@@ -170,19 +189,53 @@ server.on('connection', (socket) => {
       (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
       (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
     ) {
-      var player_id_div = str.indexOf('*');
-      socket.channel = str.substring(start + 13, player_id_div);
+      socket.channel = str.substring(start + 13, end);
       socket.write('Hello. Noobhub online. \r\n');
       _log(
         `TCP Client ${socket.connectionId} subscribes for channel: ${socket.channel}`
       );
-      var player_id = parseInt(str.substring(player_id_div + 1, end));
 
-      Games[socket.channel].player_ids.push(player_id);
+      Games[socket.channel].player_ids.sort();
+      Games[socket.channel].player_ids.reverse();
+
+      var assigned_player_id = Games[socket.channel].player_ids[0] + 1;
+
+      Games[socket.channel].player_ids.reverse();
+      Games[socket.channel].player_ids.push(assigned_player_id);
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
       sockets[socket.channel][socket.connectionId] = socket;
+
+      var payload = {
+        status: 'ok',
+        player_id: assigned_player_id,
+        join_code: socket.channel,
+        hand: Games[socket.channel].player_hands[assigned_player_id]
+      };
+      socket.isConnected &&
+        socket.write(
+          '__JSON__START__' + JSON.stringify(payload) + '__JSON__END__'
+        ) &&
+        _log('Writing ' + JSON.stringify(payload) + 'to client socket');
+
+      payload = {
+        status: 'begin_game',
+        active_player: Games[socket.channel].active_player_id
+        // each player's hand
+      };
+      if (Games[socket.channel].player_ids.length === 6) {
+        const channelSockets = sockets[socket.channel];
+        if (channelSockets) {
+          const subscribers = Object.values(channelSockets);
+          for (let sub of subscribers) {
+            if (!cfg.sendOwnMessagesBack && sub === socket) {
+              continue;
+            }
+            sub.isConnected && sub.write(payload);
+          }
+        }
+      }
     }
 
     let timeToExit = true;
@@ -204,7 +257,6 @@ server.on('connection', (socket) => {
         const channelSockets = sockets[socket.channel];
         if (channelSockets) {
           const subscribers = Object.values(channelSockets);
-          _log(`subscribers are: ${JSON.stringify(subscribers)}`);
           for (let sub of subscribers) {
             if (!cfg.sendOwnMessagesBack && sub === socket) {
               continue;

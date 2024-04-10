@@ -48,8 +48,7 @@ noobhub = {
             self.sock:settimeout(0)
             local input, output = socket.select(nil, { self.sock }, 3)
             for i, v in ipairs(output) do
-                v:send("__REGISTER__" ..
-                    self.channel .. '*' .. params.player_id .. "__ENDREGISTER__");
+                v:send("__REGISTER____ENDREGISTER__");
             end
             return true
         end
@@ -67,8 +66,7 @@ noobhub = {
             self.sock:settimeout(0)
             local input, output = socket.select(nil, { self.sock }, 3)
             for i, v in ipairs(output) do
-                v:send("__SUBSCRIBE__" ..
-                    self.channel .. '*' .. params.player_id .. "__ENDSUBSCRIBE__");
+                v:send("__SUBSCRIBE__" .. self.channel .. "__ENDSUBSCRIBE__");
             end
             return true
         end

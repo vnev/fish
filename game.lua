@@ -11,10 +11,18 @@ require "noobhub/client/lua-love/noobhub"
 
 local Game = class("Game")
 
+local function _callback(message)
+    print('player id: ' .. message.player_id)
+    print('player hand: ')
+    for i = 1, #message.hand, 1 do
+        print(message.hand[i])
+    end
+end
+
 function Game:initialize()
     self.card_images = AssetLoader:LoadAssets()
     self.game_state = State:new() -- state starts as StateType.CONNECTING, click events will not register till all 6 players have connected
-    self.game_state.state = self.game_state.StateType.JOINING_GAME
+    --self.game_state.state = self.game_state.StateType.JOINING_GAME
     self.steal_list = {}
     self.draw_list = {}
     self.connected_players = {}
@@ -29,7 +37,6 @@ function Game:initialize()
 
     self.deck:populate(self.card_images)
     self.font = love.graphics.newFont("Workbench.ttf", 16)
-    print("loaded font workbench, dpi scale: " .. self.font:getDPIScale())
     self.players = {}
     self.hands = {}
     self.teamA = Team:new(1, self.card_images["card_back"])
@@ -69,50 +76,15 @@ function Game:initialize()
     self.teamA.isstealing = true
 
     if self.game_state.state == self.game_state.StateType.CREATING_GAME then
-        self.channel = math.random(4000, 990000)
         self.connection:registerchannel({
-            channel = self.channel,
-            player_id = self.active_player.id,
-            callback = function(message)
-                print('IN CREATOR CALLBACK')
-                if message.action == "connect" then
-                    print('new client connection: ' .. message.data.client)
-                    table.insert(self.connected_players, message.data.client)
-                    if #self.connected_players == 6 then
-                        print('we have 6 players... its a go')
-                        self.connection:publish({
-                            action = "begin_play",
-                            data = { clients = self.connected_players }
-                        })
-                    end
-                end
-            end
+            callback = _callback
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = 96347,
-            player_id = 2,
-            callback = function(message)
-                if message.action == "connect" then
-                    print(message.data.client)
-                    table.insert(self.connected_players, message.data.client)
-                    if #self.connected_players == 6 then
-                        print('we have 6 players... its a go')
-                        self.connection:publish({
-                            action = "begin_play",
-                            data = { clients = self.connected_players }
-                        })
-                    end
-                end
-            end
+            channel = 'pab4gcp5jr',
+            callback = _callback
         })
     end
-    self.connection:publish({
-        message = {
-            action = "connect",
-            data = { client = 'blick2' }
-        }
-    })
 end
 
 function Game:loadCenterCards()
