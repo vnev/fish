@@ -90,9 +90,12 @@ function Game:initialize()
                     end
                 end
             end
-
-            self.game_state.state = self.game_state.StateType.PLAYING
-            print('i am ready to play!')
+            if message.active_player_id == self.player.id then
+                self.game_state.state = self.game_state.StateType.PLAYING
+                print('i am ready to play!')
+            else
+                self.game_state.state = self.game_state.StateType.IDLING
+            end
         end
         if message.status == 'steal' then
             if message.result == 'success' then
@@ -132,7 +135,7 @@ function Game:initialize()
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = '8UNCZ',
+            channel = '7S6dq',
             callback = cb
         })
     end
