@@ -222,39 +222,15 @@ function Game:click_event(x, y)
             if (x >= self.steal_list[i].x) and (x <= self.steal_list[i].x + self.card_img_width)
                 and (y >= self.steal_list[i].y) and (y <= self.steal_list[i].y + self.card_img_height)
             then
-                -- currently trying to steal self.steal_list[i].card
-                --[[for j = 1, #self.stealing_from.hand.cards, 1 do
-                    if self.stealing_from.hand.cards[j].id == self.steal_list[i].card.id then
-                        local stolen_card = self.stealing_from:give(self.stealing_from.hand.cards[j].id)
-                        self.player:take(stolen_card)
-                        print(self.player.id .. ' stole ' .. stolen_card.readable_id)
-                        stolen = true
-                        break
-                    end
-                end--]]
-
-
                 self.connection:trysteal(self.player.id, self.stealing_from, self.steal_list[i].card.id)
-                self.game_state.state = self.game_state.StateType
-                    .IDLING -- do this so user can't perform any more click actions until server gets back with the result
+                -- do this so user can't perform any more click actions until server gets back with the result
+                self.game_state.state = self.game_state.StateType.IDLING
                 break
             else
                 -- user clicked outside, so just reset state
                 self.game_state.state = self.game_state.StateType.PLAYING
             end
         end
-        --[[if not stolen then
-            print('switching active player... current: ' .. self.active_player.id)
-            self.active_player.isstealing = false
-            self.active_player.team.isstealing = false
-            self.active_player = self.stealing_from
-            self.active_player.isstealing = true
-            self.active_player.team.isstealing = true
-            print('switching active player... new: ' .. self.active_player.id)
-        end
-        self.stealing_from = nil
-        self.game_state.state = self.game_state.StateType.PLAYING
-        self.steal_list = {}--]]
     end
 end
 
