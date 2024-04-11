@@ -103,6 +103,19 @@ function _log() {
   if (cfg.verbose) console.log.apply(console, arguments);
 }
 
+function makeid(length) {
+  let result = '';
+  const characters =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
 // black magic
 process.on('uncaughtException', (err) => {
   _log('Exception: ' + err); // TODO: think we should terminate it on such exception
@@ -138,9 +151,9 @@ server.on('connection', (socket) => {
       (start = str.indexOf('__REGISTER__')) !== -1 &&
       (end = str.indexOf('__ENDREGISTER__')) !== -1
     ) {
-      var new_chan = Math.random().toString(36).slice(2);
+      var new_chan = makeid(5);
       while (Games[new_chan]) {
-        new_chan = Math.random().toString(36).slice(2);
+        new_chan = makeid(5);
       }
 
       var all_cards_shuffled = [...cards];
@@ -300,6 +313,17 @@ server.on('connection', (socket) => {
 
         payload['result'] = 'success';
         payload['stolen_card_id'] = card_id;
+
+        sockets[socket.channel][socketIdToPlayerId_map[stealing_from_player_id]]
+          .isConnected &&
+          sockets[socket.channel][
+            socketIdToPlayerId_map[stealing_from_player_id]
+          ].write(
+            '__JSON__START__' +
+              JSON.stringify({ status: 'drop_card', stolen_card_id: card_id }) +
+              '__JSON__END__'
+          ) &&
+          _log('Wrote drop card to ' + stealing_from_player_id);
       } else {
         payload['result'] = 'fail';
         // guess failed, notify all players of active player change

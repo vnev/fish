@@ -58,6 +58,7 @@ function Game:initialize()
                     hand.belongs_to = self.player.id
                     print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
                     team:addplayer(self.player.id)
+                    love.window.setTitle("Fish " .. self.player.id)
                 end
                 if message.active_player_id then
                     if message.active_player_id == self.player.id then
@@ -108,6 +109,17 @@ function Game:initialize()
                         self.game_state.state = self.game_state.StateType.IDLING
                     end
                 end
+                if message.status == 'drop_card' then
+                    local found_idx = -1
+                    for i = 1, #self.player.hand.cards, 1 do
+                        if self.player.hand.cards[i].id == message.stolen_card_id then
+                            found_idx = i
+                            break
+                        end
+                    end
+                    table.remove(self.player.hand.cards, found_idx)
+                    print('removed ' .. message.stolen_card_id .. ' from player hand')
+                end
                 if message.hand then
                     print('player hand: ')
                     for i = 1, #message.hand, 1 do
@@ -118,7 +130,7 @@ function Game:initialize()
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = 'p2mi7ln08us',
+            channel = 'CCSUM',
             callback = function(message)
                 local hand = {}
                 if message.join_code then
@@ -139,6 +151,7 @@ function Game:initialize()
                     hand.belongs_to = self.player.id
                     print('creating new player with id: ' .. self.player.id .. ' belonging to team: ' .. team.id)
                     team:addplayer(self.player.id)
+                    love.window.setTitle("Fish " .. self.player.id)
                 end
                 if message.active_player_id then
                     if message.active_player_id == self.player.id then
@@ -186,6 +199,17 @@ function Game:initialize()
                         print('Steal failed, switching players...')
                         self.game_state.state = self.game_state.StateType.IDLING
                     end
+                end
+                if message.status == 'drop_card' then
+                    local found_idx = -1
+                    for i = 1, #self.player.hand.cards, 1 do
+                        if self.player.hand.cards[i].id == message.stolen_card_id then
+                            found_idx = i
+                            break
+                        end
+                    end
+                    table.remove(self.player.hand.cards, found_idx)
+                    print('removed ' .. message.stolen_card_id .. ' from player hand')
                 end
                 print('player hand: ')
                 if message.hand then
@@ -346,8 +370,12 @@ function Game:draw()
             team.card_batches[i].batch:setColor(255, 255, 255, 0.15)
         end
     end
-    self.teamA:draw()
-    self.teamB:draw()
+
+    if self.player.team.id == self.teamA.id then
+        self.teamB:draw()
+    else
+        self.teamA:draw()
+    end
 
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
         love.graphics.setColor(255, 255, 255, 1)
