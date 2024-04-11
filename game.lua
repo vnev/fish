@@ -36,188 +36,104 @@ function Game:initialize()
     self.player = {}
     self.stealing_from = nil
 
-    if self.game_state.state == self.game_state.StateType.CREATING_GAME then
-        self.connection:registerchannel({
-            callback = function(message)
-                local hand = {}
-                if message.join_code then
-                    print('join code: ' .. message.join_code)
-                end
-                if message.hand then
-                    hand = Hand:new(self.deck:from(message.hand), -1)
-                end
-                if message.player_id and message.team then
-                    assert(hand)
-                    local team
-                    if message.team == 0 then
-                        team = self.teamA
-                    else
-                        team = self.teamB
-                    end
-                    self.player = Player:new(message.player_id, hand, team)
-                    hand.belongs_to = self.player.id
-                    print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
-                    team:addplayer(self.player.id)
-                    love.window.setTitle("Fish " .. self.player.id)
-                end
-                if message.active_player_id then
-                    if message.active_player_id == self.player.id then
-                        print('setting active client to this client')
-                        self.player.isstealing = true
-                        if message.status == 'switch' then
-                            print('switching to playing state!')
-                            self.game_state.state = self.game_state.StateType.PLAYING
-                        end
-                    else
-                        print('active client is currently: ' .. message.active_player_id)
-                        self.player.isstealing = false
-                    end
-                end
-                if message.status == 'begin_game' then
-                    print('starting game')
-                    for k, v in pairs(message.teams) do
-                        local team
-                        local s
-                        if k == '0' then
-                            team = self.teamA
-                            s = 'teamA'
-                        else
-                            team = self.teamB
-                            s = 'teamB'
-                        end
-                        for i = 1, #v, 1 do
-                            if v[i] ~= self.player.id then
-                                print('adding ' .. v[i] .. ' to ' .. s)
-                                team:addplayer(v[i])
-                            end
-                        end
-                    end
-
+    local function cb(message)
+        local hand = {}
+        if message.join_code then
+            print('join code: ' .. message.join_code)
+        end
+        if message.hand then
+            hand = Hand:new(self.deck:from(message.hand), -1)
+        end
+        if message.player_id and message.team then
+            assert(hand)
+            local team
+            if message.team == 0 then
+                team = self.teamA
+            else
+                team = self.teamB
+            end
+            self.player = Player:new(message.player_id, hand, team)
+            hand.belongs_to = self.player.id
+            print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
+            team:addplayer(self.player.id)
+            love.window.setTitle("Fish " .. self.player.id)
+        end
+        if message.active_player_id then
+            if message.active_player_id == self.player.id then
+                print('setting active client to this client')
+                self.player.isstealing = true
+                if message.status == 'switch' then
+                    print('switching to playing state!')
                     self.game_state.state = self.game_state.StateType.PLAYING
-                    print('i am ready to play!')
                 end
-                if message.status == 'steal' then
-                    if message.result == 'success' then
-                        local stolen_card_id = message.stolen_card_id
-                        print('You successfully stole ' .. message.stolen_card_id)
-                        local card = self.deck:getcardbyid(stolen_card_id)
-                        assert(card)
-                        self.player.hand:add(card)
-                        self.game_state.state = self.game_state.StateType.PLAYING
-                    else
-                        print('Steal failed, switching players...')
-                        self.game_state.state = self.game_state.StateType.IDLING
-                    end
+            else
+                print('active client is currently: ' .. message.active_player_id)
+                self.player.isstealing = false
+            end
+        end
+        if message.status == 'begin_game' then
+            print('starting game')
+            for k, v in pairs(message.teams) do
+                local team
+                local s
+                if k == '0' then
+                    team = self.teamA
+                    s = 'teamA'
+                else
+                    team = self.teamB
+                    s = 'teamB'
                 end
-                if message.status == 'drop_card' then
-                    local found_idx = -1
-                    for i = 1, #self.player.hand.cards, 1 do
-                        if self.player.hand.cards[i].id == message.stolen_card_id then
-                            found_idx = i
-                            break
-                        end
-                    end
-                    table.remove(self.player.hand.cards, found_idx)
-                    print('removed ' .. message.stolen_card_id .. ' from player hand')
-                end
-                if message.hand then
-                    print('player hand: ')
-                    for i = 1, #message.hand, 1 do
-                        print(message.hand[i])
+                for i = 1, #v, 1 do
+                    if v[i] ~= self.player.id then
+                        print('adding ' .. v[i] .. ' to ' .. s)
+                        team:addplayer(v[i])
                     end
                 end
             end
+
+            self.game_state.state = self.game_state.StateType.PLAYING
+            print('i am ready to play!')
+        end
+        if message.status == 'steal' then
+            if message.result == 'success' then
+                local stolen_card_id = message.stolen_card_id
+                print('You successfully stole ' .. message.stolen_card_id)
+                local card = self.deck:getcardbyid(stolen_card_id)
+                assert(card)
+                self.player.hand:add(card)
+                self.game_state.state = self.game_state.StateType.PLAYING
+            else
+                print('Steal failed, switching players...')
+                self.game_state.state = self.game_state.StateType.IDLING
+            end
+        end
+        if message.status == 'drop_card' then
+            local found_idx = -1
+            for i = 1, #self.player.hand.cards, 1 do
+                if self.player.hand.cards[i].id == message.stolen_card_id then
+                    found_idx = i
+                    break
+                end
+            end
+            table.remove(self.player.hand.cards, found_idx)
+            print('removed ' .. message.stolen_card_id .. ' from player hand')
+        end
+        if message.hand then
+            print('player hand: ')
+            for i = 1, #message.hand, 1 do
+                print(message.hand[i])
+            end
+        end
+    end
+
+    if self.game_state.state == self.game_state.StateType.CREATING_GAME then
+        self.connection:registerchannel({
+            callback = cb
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = 'CCSUM',
-            callback = function(message)
-                local hand = {}
-                if message.join_code then
-                    print('join code: ' .. message.join_code)
-                end
-                if message.hand then
-                    hand = Hand:new(self.deck:from(message.hand), -1)
-                end
-                if message.player_id and message.team then
-                    assert(hand)
-                    local team
-                    if message.team == 0 then
-                        team = self.teamA
-                    else
-                        team = self.teamB
-                    end
-                    self.player = Player:new(message.player_id, hand, team)
-                    hand.belongs_to = self.player.id
-                    print('creating new player with id: ' .. self.player.id .. ' belonging to team: ' .. team.id)
-                    team:addplayer(self.player.id)
-                    love.window.setTitle("Fish " .. self.player.id)
-                end
-                if message.active_player_id then
-                    if message.active_player_id == self.player.id then
-                        print('setting active client to this client')
-                        self.player.isstealing = true
-                        if message.status == 'switch' then
-                            self.game_state.state = self.game_state.StateType.PLAYING
-                        end
-                    else
-                        print('active player is currently ' .. message.active_player_id)
-                        self.player.isstealing = false
-                    end
-                end
-                if message.status == 'begin_game' then
-                    print('starting game')
-                    for k, v in pairs(message.teams) do
-                        local team
-                        local s
-                        if k == '0' then
-                            team = self.teamA
-                            s = 'teamA'
-                        else
-                            team = self.teamB
-                            s = 'teamB'
-                        end
-                        for i = 1, #v, 1 do
-                            if v[i] ~= self.player.id then
-                                print('adding ' .. v[i] .. ' to ' .. s)
-                                team:addplayer(v[i])
-                            end
-                        end
-
-                        self.game_state.state = self.game_state.StateType.IDLING
-                    end
-                end
-                if message.status == 'steal' then
-                    if message.result == 'success' then
-                        local stolen_card_id = message.stolen_card_id
-                        print('You successfully stole ' .. message.stolen_card_id)
-                        local card = self.deck:getcardbyid(stolen_card_id)
-                        assert(card)
-                        self.player.hand:add(card)
-                        self.game_state.state = self.game_state.StateType.PLAYING
-                    else
-                        print('Steal failed, switching players...')
-                        self.game_state.state = self.game_state.StateType.IDLING
-                    end
-                end
-                if message.status == 'drop_card' then
-                    local found_idx = -1
-                    for i = 1, #self.player.hand.cards, 1 do
-                        if self.player.hand.cards[i].id == message.stolen_card_id then
-                            found_idx = i
-                            break
-                        end
-                    end
-                    table.remove(self.player.hand.cards, found_idx)
-                    print('removed ' .. message.stolen_card_id .. ' from player hand')
-                end
-                print('player hand: ')
-                if message.hand then
-                    for i = 1, #message.hand, 1 do
-                        print(message.hand[i])
-                    end
-                end
-            end
+            channel = '8UNCZ',
+            callback = cb
         })
     end
 end
