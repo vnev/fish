@@ -20,6 +20,7 @@ function Hand:draw()
 end
 
 function Hand:add(card)
+    print('added card ' .. card.id .. ' to our hand')
     table.insert(self.cards, card)
 end
 

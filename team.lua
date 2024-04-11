@@ -48,7 +48,6 @@ end
 
 function Team:addplayer(player)
     table.insert(self.players, player)
-    print('added player to team. new team total: ' .. #self.players)
 end
 
 function Team:update()

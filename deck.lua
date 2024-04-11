@@ -42,6 +42,18 @@ function Deck:shuffle()
     end
 end
 
+function Deck:getcardbyid(card_id)
+    local cardscopy = Utils:copyarr_shallow(self.cards)
+
+    for j = 1, #cardscopy, 1 do
+        if cardscopy[j].id == card_id then
+            return cardscopy[j]
+        end
+    end
+
+    return nil
+end
+
 function Deck:from(cards)
     self:shuffle()
     local cardscopy = Utils:copyarr_shallow(self.cards)
