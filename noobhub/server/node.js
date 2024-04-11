@@ -170,7 +170,7 @@ server.on('connection', (socket) => {
       if (Games[socket.channel].teams[team].length < 3)
         // should always be true when its a game host since new game is being registered
         Games[socket.channel].teams[team].push(player_id);
-      socketIdToPlayerId_map[socket.connectionId] = player_id;
+      socketIdToPlayerId_map[player_id] = socket.connectionId;
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
       sockets[socket.channel] = sockets[socket.channel] || {}; // hashmap of sockets  subscribed to the same channel
@@ -187,6 +187,7 @@ server.on('connection', (socket) => {
         join_code: socket.channel,
         active_player_id: Games[socket.channel].active_player_id,
         team: team,
+        opponent: team == 0 ? 1 : 0,
         hand: Games[socket.channel].player_hands[player_id]
       };
       socket.isConnected &&
@@ -195,27 +196,25 @@ server.on('connection', (socket) => {
         ) &&
         _log('Writing ' + JSON.stringify(payload) + 'to client socket');
     } else if (
-      (start = str.indexOf('__FETCH__')) !== -1 &&
-      (end = str.indexOf('__ENDFETCH__')) !== -1
-    ) {
-    } else if (
       (start = str.indexOf('__SUBSCRIBE__')) !== -1 &&
       (end = str.indexOf('__ENDSUBSCRIBE__')) !== -1
     ) {
-      if (Games[socket.channel].player_ids.length === 6) {
-        return;
-      }
       socket.channel = str.substring(start + 13, end);
       socket.write('Hello. Noobhub online. \r\n');
       _log(
         `TCP Client ${socket.connectionId} subscribes for channel: ${socket.channel}`
       );
 
+      if (Games[socket.channel].player_ids.length === 6) {
+        socket.write('Lobby is full! \r\n');
+        _log(`Lobby ${socket.channel} is full... Rejecting connection`);
+        return;
+      }
       Games[socket.channel].player_ids.sort();
       Games[socket.channel].player_ids.reverse();
 
       var assigned_player_id = Games[socket.channel].player_ids[0] + 1;
-
+      socketIdToPlayerId_map[assigned_player_id] = socket.connectionId;
       Games[socket.channel].player_ids.reverse();
       Games[socket.channel].player_ids.push(assigned_player_id);
 
@@ -223,7 +222,7 @@ server.on('connection', (socket) => {
       while (Games[socket.channel].teams[team].length === 3) {
         team = randomInt(2);
       }
-      Games[socket.channel].teams[team].push(team);
+      Games[socket.channel].teams[team].push(assigned_player_id);
 
       str = str.substr(end + 16); // cut the message and remove the precedant part of the buffer since it can't be processed
       socket.buffer.len = socket.buffer.write(str, 0);
@@ -236,6 +235,7 @@ server.on('connection', (socket) => {
         join_code: socket.channel,
         active_player_id: Games[socket.channel].active_player_id,
         team: team,
+        opponent: team == 0 ? 1 : 0,
         hand: Games[socket.channel].player_hands[assigned_player_id]
       };
       socket.isConnected &&
@@ -248,8 +248,9 @@ server.on('connection', (socket) => {
         // if we have all players, then let everyone know we're good to go
         payload = {
           status: 'begin_game',
-          active_player_id: Games[socket.channel].active_player_id
+          active_player_id: Games[socket.channel].active_player_id,
           // each player's hand
+          teams: Games[socket.channel].teams
         };
         const channelSockets = sockets[socket.channel];
         if (channelSockets) {
@@ -258,10 +259,87 @@ server.on('connection', (socket) => {
             if (!cfg.sendOwnMessagesBack && sub === socket) {
               continue;
             }
-            sub.isConnected && sub.write(payload);
+            sub.isConnected &&
+              sub.write(
+                '__JSON__START__' + JSON.stringify(payload) + '__JSON__END__'
+              ) &&
+              _log('Sending ' + JSON.stringify(payload));
           }
         }
       }
+    } else if (
+      (start = str.indexOf('__STEAL__')) !== -1 &&
+      (end = str.indexOf('__ENDSTEAL__')) !== -1
+    ) {
+      let payload = str.substring(start + 9, end);
+      let params = payload.split('&');
+      if (params.length !== 3) {
+        _log('FATAL: DID NOT RECEIVE 3 PARAMS FOR STEAL');
+      }
+      // param 0 - stealing player id
+      // param 1 - stealing from player id
+      // param 2 - card id being stolen
+      let stealing_player_id = parseInt(params[0]);
+      let stealing_from_player_id = parseInt(params[1]);
+      let card_id = params[2];
+
+      let card_idx =
+        Games[socket.channel].player_hands[stealing_from_player_id].indexOf(
+          card_id
+        );
+
+      payload = {
+        status: 'steal'
+      };
+      if (card_idx !== -1) {
+        Games[socket.channel].player_hands[stealing_from_player_id].splice(
+          card_idx,
+          1
+        );
+        Games[socket.channel].player_hands[stealing_player_id].push(card_id);
+
+        payload['result'] = 'success';
+        payload['stolen_card_id'] = card_id;
+      } else {
+        payload['result'] = 'fail';
+        // guess failed, notify all players of active player change
+        const channelSockets = sockets[socket.channel];
+        if (channelSockets) {
+          const subscribers = Object.values(channelSockets);
+          for (let sub of subscribers) {
+            if (!cfg.sendOwnMessagesBack && sub === socket) {
+              continue;
+            }
+            sub.isConnected &&
+              sub.write(
+                '__JSON__START__' +
+                  JSON.stringify({
+                    status: 'switch',
+                    active_player_id: stealing_from_player_id
+                  }) +
+                  '__JSON__END__'
+              ) &&
+              _log('Sending ' + JSON.stringify(payload));
+          }
+        }
+
+        Games[socket.channel].active_player_id = stealing_from_player_id;
+      }
+
+      sockets[socket.channel][socketIdToPlayerId_map[stealing_player_id]]
+        .isConnected &&
+        sockets[socket.channel][
+          socketIdToPlayerId_map[stealing_player_id]
+        ].write(
+          '__JSON__START__' + JSON.stringify(payload) + '__JSON__END__'
+        ) &&
+        _log(
+          'wrote ' +
+            JSON.stringify(payload) +
+            ' to ' +
+            stealing_player_id +
+            "'s socket"
+        );
     }
 
     let timeToExit = true;

@@ -85,6 +85,22 @@ noobhub = {
             return self:subscribe({ channel = self.channel, callback = self.callback })
         end
 
+        function self:trysteal(stealing_player_id, stealing_from_player_id, card_id)
+            if (self.sock == nil) then
+                print "NoobHub: Attempt to publish without valid subscription (bad socket)"
+                self:reconnect()
+                return false;
+            end
+            local send_result, message, num_bytes = self.sock:send("__STEAL__" ..
+                stealing_player_id .. '&' .. stealing_from_player_id .. '&' .. card_id .. "__ENDSTEAL__")
+            if (send_result == nil) then
+                print("Noobhub publish error: " .. message .. '  sent ' .. num_bytes .. ' bytes');
+                if (message == 'closed') then self:reconnect() end
+                return false;
+            end
+            return true
+        end
+
         function self:publish(message)
             -- TODO: add retries
             if (self.sock == nil) then

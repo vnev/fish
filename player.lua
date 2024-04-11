@@ -62,7 +62,7 @@ end
 
 function Player:draw()
     -- this is a hack to only show player 1 hand on the bottom row, when doing multiplayer we need to remove the isstealing condition
-    if not self.isactive or not self.isstealing then
+    if not self.isactive then
         return
     end
 

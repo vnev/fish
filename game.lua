@@ -14,7 +14,7 @@ local Game = class("Game")
 function Game:initialize()
     self.card_images = AssetLoader:LoadAssets()
     self.game_state = State:new() -- state starts as StateType.CONNECTING, click events will not register till all 6 players have connected
-    --self.game_state.state = self.game_state.StateType.JOINING_GAME
+    self.game_state.state = self.game_state.StateType.JOINING_GAME
     self.steal_list = {}
     self.draw_list = {}
     self:loadCenterCards()
@@ -34,7 +34,6 @@ function Game:initialize()
     self.window_width = 1024
     self.window_height = 850
     self.player = {}
-
     self.stealing_from = nil
 
     if self.game_state.state == self.game_state.StateType.CREATING_GAME then
@@ -58,26 +57,63 @@ function Game:initialize()
                     self.player = Player:new(message.player_id, hand, team)
                     hand.belongs_to = self.player.id
                     print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
-                    team:addplayer(self.player)
+                    team:addplayer(self.player.id)
                 end
                 if message.active_player_id then
                     if message.active_player_id == self.player.id then
                         print('setting active client to this client')
                         self.player.isstealing = true
+                        if message.status == 'switch' then
+                            print('switching to playing state!')
+                            self.game_state.state = self.game_state.StateType.PLAYING
+                        end
                     else
+                        print('active client is currently: ' .. message.active_player_id)
                         self.player.isstealing = false
                     end
                 end
+                if message.status == 'begin_game' then
+                    print('starting game')
+                    for k, v in pairs(message.teams) do
+                        local team
+                        if k == '0' then
+                            print('adding to team A')
+                            team = self.teamA
+                        else
+                            print('adding to team B')
+                            team = self.teamB
+                        end
+                        for i = 1, #v, 1 do
+                            if v[i] ~= self.player.id then
+                                print(v[i])
+                                team:addplayer(v[i])
+                            end
+                        end
+                    end
 
-                print('player hand: ')
-                for i = 1, #message.hand, 1 do
-                    print(message.hand[i])
+                    self.game_state.state = self.game_state.StateType.PLAYING
+                    print('i am ready to play!')
+                end
+                if message.status == 'steal' then
+                    if message.result == 'success' then
+                        local stolen_card_id = message.stolen_card_id
+                        print('You successfully stole ' .. message.stolen_card_id)
+                    else
+                        print('Steal failed, switching players...')
+                        self.game_state.state = self.game_state.StateType.IDLING
+                    end
+                end
+                if message.hand then
+                    print('player hand: ')
+                    for i = 1, #message.hand, 1 do
+                        print(message.hand[i])
+                    end
                 end
             end
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = 'plrl93t5qhm',
+            channel = '349rqjk1mrr',
             callback = function(message)
                 local hand = {}
                 if message.join_code then
@@ -89,28 +125,63 @@ function Game:initialize()
                 if message.player_id and message.team then
                     assert(hand)
                     local team
-                    if message.team == 0 then
+                    if message.team == '0' then
                         team = self.teamA
                     else
                         team = self.teamB
                     end
                     self.player = Player:new(message.player_id, hand, team)
                     hand.belongs_to = self.player.id
-                    print('Creating new player with ID: ' .. self.player.id .. ' belonging to team: ' .. team.id)
-                    team:addplayer(self.player)
+                    print('creating new player with id: ' .. self.player.id .. ' belonging to team: ' .. team.id)
+                    team:addplayer(self.player.id)
                 end
                 if message.active_player_id then
                     if message.active_player_id == self.player.id then
                         print('setting active client to this client')
                         self.player.isstealing = true
+                        if message.status == 'switch' then
+                            self.game_state.state = self.game_state.StateType.PLAYING
+                        end
                     else
+                        print('active player is currently ' .. message.active_player_id)
                         self.player.isstealing = false
                     end
                 end
+                if message.status == 'begin_game' then
+                    print('starting game')
+                    for k, v in pairs(message.teams) do
+                        local team
+                        if k == '0' then
+                            print('adding to team A')
+                            team = self.teamA
+                        else
+                            print('adding to team B')
+                            team = self.teamB
+                        end
+                        for i = 1, #v, 1 do
+                            if v[i] ~= self.player.id then
+                                print(v[i])
+                                team:addplayer(v[i])
+                            end
+                        end
 
+                        self.game_state.state = self.game_state.StateType.IDLING
+                    end
+                end
+                if message.status == 'steal' then
+                    if message.result == 'success' then
+                        local stolen_card_id = message.stolen_card_id
+                        print('You successfully stole ' .. message.stolen_card_id)
+                    else
+                        print('Steal failed, switching players...')
+                        self.game_state.state = self.game_state.StateType.IDLING
+                    end
+                end
                 print('player hand: ')
-                for i = 1, #message.hand, 1 do
-                    print(message.hand[i])
+                if message.hand then
+                    for i = 1, #message.hand, 1 do
+                        print(message.hand[i])
+                    end
                 end
             end
         })
@@ -153,18 +224,19 @@ function Game:click_event(x, y)
 
     if self.game_state.state == self.game_state.StateType.CONNECTING or
         self.game_state.state == self.game_state.StateType.CREATING_GAME or
-        self.game_state.state == self.game_state.StateType.JOINING_GAME then
+        self.game_state.state == self.game_state.StateType.JOINING_GAME or
+        self.game_state.state == self.game_state.StateType.IDLING then
         -- dont do anything
     elseif self.game_state.state == self.game_state.StateType.PLAYING then
         local team
-        if self.player.team == self.teamA then team = self.teamA else team = self.teamB end
+        if self.player.team == self.teamA then team = self.teamB else team = self.teamA end
 
         for i = 1, #team.players, 1 do
             local player = team.players[i]
             if (x >= team.card_batches[i].x) and (x <= team.card_batches[i].x + self.card_img_width)
                 and (y >= team.card_batches[i].y) and (y <= team.card_batches[i].y + self.card_img_height)
             then
-                print(self.player.id .. ' clicked on ' .. player.id)
+                print(self.player.id .. ' clicked on ' .. player)
                 self.stealing_from = player
                 self.game_state.state = self.game_state.StateType.PLAYER_STEALING
                 local subdecks = self.player.stealable
@@ -198,7 +270,7 @@ function Game:click_event(x, y)
                 and (y >= self.steal_list[i].y) and (y <= self.steal_list[i].y + self.card_img_height)
             then
                 -- currently trying to steal self.steal_list[i].card
-                for j = 1, #self.stealing_from.hand.cards, 1 do
+                --[[for j = 1, #self.stealing_from.hand.cards, 1 do
                     if self.stealing_from.hand.cards[j].id == self.steal_list[i].card.id then
                         local stolen_card = self.stealing_from:give(self.stealing_from.hand.cards[j].id)
                         self.player:take(stolen_card)
@@ -206,13 +278,14 @@ function Game:click_event(x, y)
                         stolen = true
                         break
                     end
-                end
-                if stolen then
-                    break
-                end
+                end--]]
+
+
+                self.connection:trysteal(self.player.id, self.stealing_from, self.steal_list[i].card.id)
+                break
             end
         end
-        if not stolen then
+        --[[if not stolen then
             print('switching active player... current: ' .. self.active_player.id)
             self.active_player.isstealing = false
             self.active_player.team.isstealing = false
@@ -223,7 +296,7 @@ function Game:click_event(x, y)
         end
         self.stealing_from = nil
         self.game_state.state = self.game_state.StateType.PLAYING
-        self.steal_list = {}
+        self.steal_list = {}--]]
     end
 end
 
@@ -257,7 +330,8 @@ function Game:draw()
     self.player:draw()
 
     if self.game_state.state == self.game_state.StateType.PLAYER_STEALING then
-        local team = self.stealing_from.team
+        local team
+        if self.player.team == self.teamA then team = self.teamB else team = self.teamA end
         for i = 1, #team.card_batches, 1 do
             team.card_batches[i].batch:setColor(255, 255, 255, 0.15)
         end
@@ -269,9 +343,11 @@ function Game:draw()
         love.graphics.setColor(255, 255, 255, 1)
     end
 
-    for i = 1, #self.steal_list, 1 do
-        love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
-            self.steal_list[i].y, 0, 1.5, 1.5)
+    if self.player.isstealing then
+        for i = 1, #self.steal_list, 1 do
+            love.graphics.draw(self.steal_list[i].card.image, self.steal_list[i].x,
+                self.steal_list[i].y, 0, 1.5, 1.5)
+        end
     end
 end
 

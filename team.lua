@@ -4,7 +4,7 @@ local class = require "middleclass"
 local Team = class("Team")
 
 function Team:initialize(teamid, card_back_image) -- players -> list of player IDs
-    self.players = {}
+    self.players = {}                             -- player ID trailer
     self.score = 0
     self.hands_won = 0
     self.id = teamid
@@ -15,11 +15,11 @@ function Team:initialize(teamid, card_back_image) -- players -> list of player I
 end
 
 function Team:updatebatch()
-    if #self.card_batches == 0 then
+    if self.card_batches ~= 3 then
+        self.card_batches = {}
         for i = 1, #self.players, 1 do
-            local player = self.players[i]
             table.insert(self.card_batches,
-                { batch = love.graphics.newSpriteBatch(self.card_back_image, #player.hand.cards), x = 0, y = 0 })
+                { batch = love.graphics.newSpriteBatch(self.card_back_image, 8), x = 0, y = 0 })
         end
     end
 
@@ -27,13 +27,11 @@ function Team:updatebatch()
     for j = 1, #self.players, 1 do
         local rotate = 0.0
         self.card_batches[j].batch:clear()
-        if self.players[j].isactive then
-            for i = 1, #self.players[j].hand.cards, 1 do
-                self.card_batches[j].x = x
-                self.card_batches[j].y = y
-                self.card_batches[j].batch:add(x, y, rotate, 1.5, 1.5)
-                rotate = rotate + 0.01
-            end
+        for i = 1, 8, 1 do
+            self.card_batches[j].x = x
+            self.card_batches[j].y = y
+            self.card_batches[j].batch:add(x, y, rotate, 1.5, 1.5)
+            rotate = rotate + 0.01
         end
         x = x + 300
     end
@@ -50,6 +48,7 @@ end
 
 function Team:addplayer(player)
     table.insert(self.players, player)
+    print('added player to team. new team total: ' .. #self.players)
 end
 
 function Team:update()
@@ -57,10 +56,8 @@ function Team:update()
 end
 
 function Team:draw()
-    if not self.isstealing then
-        for i = 1, #self.card_batches, 1 do
-            love.graphics.draw(self.card_batches[i].batch, 0, 0)
-        end
+    for i = 1, #self.card_batches, 1 do
+        love.graphics.draw(self.card_batches[i].batch, 0, 0)
     end
 end
 
