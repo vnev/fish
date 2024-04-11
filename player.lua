@@ -36,8 +36,11 @@ function Player:updatestealable(all_cards)
                     if self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] == nil then
                         self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck] = {}
                     end
-                    table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck], all_cards[i])
-                    tracker[all_cards[i].id] = true
+                    if tracker[all_cards[i].id] then
+                    else
+                        table.insert(self.stealable[all_cards[i].suit .. '_' .. all_cards[i].subdeck], all_cards[i])
+                        tracker[all_cards[i].id] = true
+                    end
                 else
                 end
             end

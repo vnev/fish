@@ -109,6 +109,7 @@ function Game:initialize()
                 print('Steal failed, switching players...')
                 self.game_state.state = self.game_state.StateType.IDLING
             end
+            self.stealing_from = nil
         end
         if message.status == 'drop_card' then
             local found_idx = -1
@@ -135,7 +136,7 @@ function Game:initialize()
         })
     elseif self.game_state.state == self.game_state.StateType.JOINING_GAME then
         self.connection:subscribe({
-            channel = '7S6dq',
+            channel = 'aUZdw',
             callback = cb
         })
     end
@@ -183,7 +184,6 @@ function Game:click_event(x, y)
     elseif self.game_state.state == self.game_state.StateType.PLAYING then
         local team
         if self.player.team == self.teamA then team = self.teamB else team = self.teamA end
-
         for i = 1, #team.players, 1 do
             local player = team.players[i]
             if (x >= team.card_batches[i].x) and (x <= team.card_batches[i].x + self.card_img_width)
@@ -235,7 +235,12 @@ function Game:click_event(x, y)
 
 
                 self.connection:trysteal(self.player.id, self.stealing_from, self.steal_list[i].card.id)
+                self.game_state.state = self.game_state.StateType
+                    .IDLING -- do this so user can't perform any more click actions until server gets back with the result
                 break
+            else
+                -- user clicked outside, so just reset state
+                self.game_state.state = self.game_state.StateType.PLAYING
             end
         end
         --[[if not stolen then
